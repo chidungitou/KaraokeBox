@@ -8,6 +8,7 @@ import com.karaokebox.data.repo.QueueRepository
 import com.karaokebox.data.repo.SettingsStore
 import com.karaokebox.data.repo.SongRepository
 import com.karaokebox.data.scan.LibraryScanner
+import com.karaokebox.data.update.AppInstaller
 import com.karaokebox.data.yt.YoutubeRepository
 import com.karaokebox.player.PlaybackController
 import com.karaokebox.server.KaraokeServer
@@ -64,6 +65,8 @@ object ServiceLocator {
         hub = WsHub(controller, queueRepo, scanner, settings, room)
         router = Router(app)
         hub.start()
+        // Tiến độ tải bản app mới (nút "Tải và cài" trên điện thoại) đẩy lên mọi điện thoại đang mở
+        appScope.launch { AppInstaller.state.collect { hub.broadcast("app.update", it) } }
         appScope.launch { queueRepo.load() }
         // Bài Yêu thích / hát nhiều được ưu tiên giữ trong cache YouTube; cập nhật lúc khởi động và mỗi 10 phút
         appScope.launch(Dispatchers.IO) {

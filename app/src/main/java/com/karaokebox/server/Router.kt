@@ -8,6 +8,7 @@ import com.karaokebox.ServiceLocator
 import com.karaokebox.BuildConfig
 import com.karaokebox.core.text.TitleCleaner
 import com.karaokebox.data.repo.SettingsStore
+import com.karaokebox.data.update.AppInstaller
 import com.karaokebox.data.update.AppUpdater
 import com.karaokebox.data.yt.YoutubeRepository
 import com.karaokebox.data.yt.YtDiag
@@ -240,6 +241,8 @@ class Router(private val ctx: Context) {
             m == Method.POST && uri == "/api/settings" -> { requireOwner(cid); ok(applyLiveSettings(body, by)) }
             m == Method.POST && uri == "/api/settings/reset" -> { requireOwner(cid); ok(resetLiveSettings(by)) }
             m == Method.POST && uri == "/api/app/update/check" -> ok(checkAppUpdate())
+            m == Method.GET && uri == "/api/app/update/status" -> ok(appUpdateStatus())
+            m == Method.POST && uri == "/api/app/update/install" -> { requireOwner(cid); ok(startAppInstall(by)) }
 
             m == Method.GET && uri == "/api/library" -> {
                 val folders = runBlocking(Dispatchers.IO) { sl.db.folderDao().getAll() }
@@ -360,6 +363,31 @@ class Router(private val ctx: Context) {
         sl.settings.resetLiveDefaults()
         sl.controller.announce("$by đã đặt lại cài đặt về mặc định")
         return sl.settings.toLiveDto()
+    }
+
+    /** Trạng thái tải/cài bản mới + bản mới nhất đã biết (không gọi mạng). */
+    private fun appUpdateStatus(): Map<String, Any?> {
+        val st = AppInstaller.state.value
+        val rel = AppUpdater.known(sl.settings)
+        return mapOf(
+            "phase" to st.phase, "percent" to st.percent, "message" to st.message,
+            "newer" to (rel != null && AppUpdater.isNewer(rel)),
+            "latest" to rel?.label,
+            "current" to BuildConfig.VERSION_NAME
+        )
+    }
+
+    /** Nút "Tải và cài bản mới" (chủ phòng): box tải APK về rồi mở trình cài đặt của Android trên TV, người dùng bấm "Cài đặt" ở đó. */
+    private fun startAppInstall(by: String): Map<String, Any?> {
+        val rel = AppUpdater.known(sl.settings)
+        if (rel == null || !AppUpdater.isNewer(rel)) {
+            throw ApiException("NO_UPDATE", "Chưa có bản mới. Hãy bấm Kiểm tra cập nhật trước")
+        }
+        if (!AppInstaller.start(sl.appScope, ctx, sl.settings, rel)) {
+            throw ApiException("BUSY", "Đang tải bản mới rồi, đợi một chút", 409)
+        }
+        sl.controller.announce("$by đang tải bản mới ${rel.label} cho box")
+        return appUpdateStatus()
     }
 
     /**

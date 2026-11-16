@@ -1,5 +1,6 @@
 package com.karaokebox.ui
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -40,6 +41,7 @@ import com.karaokebox.ui.overlay.SettingsPanelView
 import com.karaokebox.ui.overlay.TopBannerView
 import com.karaokebox.ui.overlay.WaitingView
 import com.karaokebox.ui.settings.SettingsActivity
+import com.karaokebox.data.update.AppInstaller
 import com.karaokebox.data.update.AppUpdater
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -100,7 +102,7 @@ class PlayerActivity : AppCompatActivity() {
                     val rel = AppUpdater.check(sl.settings, 6 * 3_600_000L).release
                     if (rel != null && AppUpdater.isNewer(rel) && rel.tag != notified) {
                         notified = rel.tag
-                        marquee.post("Có bản Karaoke Box mới ${rel.label}. Vào Cài đặt > Cập nhật app để cài.", MarqueeToastView.Kind.INFO)
+                        marquee.post("Có bản Karaoke Box mới ${rel.label}. Bấm Tải và cài trong Cài đặt trên điện thoại, hoặc vào Cài đặt > Cập nhật app trên TV.", MarqueeToastView.Kind.INFO)
                     }
                 }
                 delay(6 * 3_600_000L)
@@ -202,6 +204,19 @@ class PlayerActivity : AppCompatActivity() {
                     }
                 }
                 launch { sl.controller.toasts.collect { onToast(it) } }
+                launch {
+                    // Điện thoại bấm "Tải và cài bản mới" (hoặc cần cấp quyền cài): mở trình cài đặt của Android ngay trên TV
+                    AppInstaller.launches.collect { intent ->
+                        internalNav = true   // đây là chuyển màn hình có chủ đích, không phải thoát app (lỡ hủy cài thì hát tiếp được)
+                        try { if (sl.controller.hasCurrent) sl.controller.pause() } catch (e: ApiException) { /* không có bài nào */ }
+                        try {
+                            startActivity(intent)
+                        } catch (e: ActivityNotFoundException) {
+                            internalNav = false
+                            AppInstaller.fail("Box không có trình cài đặt ứng dụng. Cài tay bằng adb (xem UPDATE_YOUTUBE.md).")
+                        }
+                    }
+                }
                 launch {
                     // Cài đặt đổi từ điện thoại / bảng nhanh: cập nhật bảng đang mở, đổi giao diện chờ ngay
                     sl.settings.changes.collect { key ->

@@ -682,6 +682,45 @@
       $('#setVer').textContent = 'Phiên bản: v' + i.appVersion + (i.newpipeVersion ? ' (NewPipe ' + i.newpipeVersion + ')' : '');
     } catch (e) { $('#setVer').textContent = 'Phiên bản: không đọc được'; }
   }
+  // Tải và cài bản mới ngay từ điện thoại: box tải APK rồi mở trình cài đặt trên TV (người dùng bấm "Cài đặt" ở TV)
+  const instBtn = $('#setInstallUpd'), instState = $('#setInstState');
+  let instArmed = false, instTimer, instPoll;
+  const showInstallBtn = (on) => { instBtn.hidden = !(on && room.isOwner); };
+  function disarmInstall() { instArmed = false; clearTimeout(instTimer); instBtn.classList.remove('armed'); instBtn.textContent = 'Tải và cài bản mới'; }
+  function renderInstall(st) {
+    if (!st || !st.phase || st.phase === 'IDLE') { instState.hidden = true; instBtn.disabled = false; return; }
+    instState.hidden = false;
+    instState.className = 'setnote' + (st.phase === 'ERROR' ? ' err' : st.phase === 'INSTALLING' ? ' new' : '');
+    instState.textContent = st.message || '';
+    instBtn.disabled = st.phase === 'DOWNLOADING';
+  }
+  // Đang tải thì hỏi tiến độ bằng HTTP (phòng khi WebSocket đang đứt); dừng khi xong hoặc đóng bảng
+  function pollInstall() {
+    clearInterval(instPoll);
+    instPoll = setInterval(async () => {
+      if (setModal.hidden) { clearInterval(instPoll); return; }
+      try {
+        const st = await api('GET', '/api/app/update/status');
+        renderInstall(st);
+        if (st.phase !== 'DOWNLOADING') clearInterval(instPoll);
+      } catch (e) { /* box có thể đang khởi động lại để cài */ }
+    }, 2000);
+  }
+  instBtn.addEventListener('click', async () => {
+    if (!instArmed) {   // bấm hai lần vì cài bản mới sẽ tạm dừng bài đang hát
+      instArmed = true; instBtn.classList.add('armed');
+      instBtn.textContent = 'Bấm lần nữa: sẽ tạm dừng hát để cài';
+      instTimer = setTimeout(disarmInstall, 4000);
+      return;
+    }
+    disarmInstall();
+    instBtn.disabled = true;
+    try {
+      const st = await api('POST', '/api/app/update/install', {});
+      renderInstall(st);
+      if (st.phase === 'DOWNLOADING') pollInstall();
+    } catch (e) { toast(e.message); instBtn.disabled = false; }
+  });
   let checkingUpd = false;
   $('#setCheckUpd').addEventListener('click', async () => {
     if (checkingUpd) return;
@@ -692,11 +731,14 @@
     try {
       const r = await api('POST', '/api/app/update/check', {});
       $('#setVer').textContent = 'Phiên bản: v' + r.current + (r.newpipe ? ' (NewPipe ' + r.newpipe + ')' : '');
+      showInstallBtn(!!r.newer);
       if (r.error && !r.latest) {
         out.className = 'setnote err'; out.textContent = r.error;
       } else if (r.newer) {
         out.className = 'setnote new';
-        out.textContent = 'Có bản mới: ' + r.latest + '. Để cài: trên TV bấm nút Vàng, chọn dòng cuối (Cài đặt đầy đủ) rồi mở Cập nhật app.';
+        out.textContent = 'Có bản mới: ' + r.latest + '.' + (room.isOwner
+          ? ' Bấm "Tải và cài bản mới" bên dưới: box tự tải, bạn chỉ bấm "Cài đặt" trên TV.'
+          : ' Chỉ chủ phòng cài được.');
       } else if (r.latest) {
         out.textContent = 'Đang dùng bản mới nhất (GitHub: ' + r.latest + ').' + (r.error ? ' Lần kiểm tra này lỗi: ' + r.error : '');
       } else {
@@ -723,8 +765,18 @@
     catch (e) { toast(e.message); }
   });
   const openSettings = () => {
-    setModal.hidden = false; loadSettings(); loadVersion(); disarmReset();
-    $('#setUpd').hidden = true;
+    setModal.hidden = false; loadSettings(); loadVersion(); disarmReset(); disarmInstall();
+    $('#setUpd').hidden = true; instBtn.hidden = true; instState.hidden = true;
+    // Bản mới đã biết từ lần kiểm tra trước (box tự kiểm tra lúc mở app) + tiến độ tải nếu đang tải dở
+    api('GET', '/api/app/update/status').then((st) => {
+      if (st.newer) {
+        const out = $('#setUpd');
+        out.hidden = false; out.className = 'setnote new'; out.textContent = 'Có bản mới: ' + st.latest + '.';
+        showInstallBtn(true);
+      }
+      renderInstall(st);
+      if (st.phase === 'DOWNLOADING') pollInstall();
+    }).catch(() => {});
     // Nhật ký lỗi chỉ chủ phòng xem được; mở bằng trình duyệt không gửi được header nên gắn mã máy vào liên kết
     $('#setDiag').href = '/api/youtube/diag?cid=' + encodeURIComponent(clientId);
   };
@@ -896,6 +948,7 @@
         case 'favorites.updated': applyFavs(p.items); break;
         case 'yt.status': ytStatus = p; renderYtStatus(); break;
         case 'settings.changed': settings = p; renderSettings(); break;
+        case 'app.update': renderInstall(p); break;
         case 'room': applyRoom(p); break;
         case 'toast': toast(p.message); break;
         case 'library.progress': {

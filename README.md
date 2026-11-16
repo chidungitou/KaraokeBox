@@ -136,13 +136,17 @@ Nhạc nền được đưa qua một chuỗi xử lý như tại phòng thu: **
 - **Hiện diện 30 phút**: server tính điện thoại là "còn trong phòng" nếu trong 30 phút có bất kỳ hoạt động nào (ping, thao tác), không phụ thuộc socket đang mở hay đứt.
   TV không nhấp nháy giữa màn hình chờ/QR khi ai đó tắt màn hình; lời chào khi vào phòng cũng chỉ hiện lại sau 30 phút. Socket im lặng quá 120 giây (trước đây 40 giây) mới bị đóng.
 
-## Gỡ chức năng micro, Cài đặt trên điện thoại gọn hơn (v1.8.0)
+## Gỡ chức năng micro, Cài đặt trên điện thoại gọn hơn (v1.8.0, nút cài bản mới từ v1.9.0)
 - **Đã gỡ hoàn toàn micro cắm vào box** (thu âm, vang micro, xin quyền `RECORD_AUDIO`): micro hát đã có đầu riêng nên box không cần thu âm.
   App không còn xin quyền micro. API `POST /api/settings` không còn nhận `micEnabled` / `micVolume` / `micEcho`. Cài đặt micro cũ (nếu có) nằm im trong máy, không ảnh hưởng gì.
 - **Cài đặt trên điện thoại (bánh răng) có thêm mục "Ứng dụng"** ở cuối:
   - Hiện **phiên bản đang chạy** (kèm bản NewPipe).
   - Nút **Kiểm tra cập nhật**: hỏi GitHub Releases và báo có bản mới hay chưa (giãn tối thiểu 15 giây giữa hai lần để không bị GitHub chặn).
-    Muốn cài thì làm trên TV: nút Vàng > dòng cuối (Cài đặt đầy đủ) > Cập nhật app, vì Android bắt bấm "Cài đặt" ngay trên màn hình box. API: `POST /api/app/update/check`.
+    API: `POST /api/app/update/check`.
+  - Nút **Tải và cài bản mới** (v1.9.0, hiện khi có bản mới, chỉ chủ phòng, bấm hai lần để xác nhận): box tự tải APK từ GitHub (điện thoại thấy % tiến độ),
+    tạm dừng bài đang hát rồi mở trình cài đặt của Android **trên TV**; bạn chỉ còn bấm **Cài đặt** một lần ở TV, cài xong box tự mở lại app (điện thoại tải lại trang).
+    Box Android 8+ lần đầu sẽ hiện màn hình xin quyền "Cho phép từ nguồn này": bật trên TV rồi bấm lại nút. Nếu bản mới ký bằng khoá khác thì dừng và báo lý do (không tải vô ích).
+    Bản 1.8.0 trở về trước chưa có nút này nên lần nâng lên 1.9.0 vẫn làm trên TV (Cài đặt > Cập nhật app) hoặc bằng adb. API: `GET /api/app/update/status`, `POST /api/app/update/install`; WebSocket phát `app.update`.
   - Nút **Đặt lại mặc định** (chủ phòng, bấm hai lần để xác nhận): kênh ca sĩ TRÁI, xếp hàng công bằng BẬT, khách qua bài BẬT, YouTube 720p, giao diện chờ TỰ ĐỘNG,
     hiệu ứng Phòng thu, cường độ 70%. Không đụng tới thư mục nhạc, hàng chờ, yêu thích, tone từng bài. API: `POST /api/settings/reset`.
 

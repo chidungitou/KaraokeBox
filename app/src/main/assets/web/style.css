@@ -260,7 +260,10 @@ ul.list li.leaving { overflow: hidden; opacity: 0; transform: translateX(-28px);
 .setbtns .btn { flex: 1 1 140px; }
 .btn.ghost { background: var(--raise); border: 1px solid var(--line); color: var(--text); }
 .btn.ghost.danger { color: var(--rose); border-color: var(--rose); background: transparent; }
-.btn.ghost.armed { background: var(--rose); color: #2a0010; }
+.btn.armed { background: var(--rose); color: #2a0010; }
+#setInstallUpd { width: 100%; }
+#setInstState.new { color: var(--amber); }
+#setInstState.err { color: var(--rose); }
 #setUpd.new { color: var(--amber); }
 #setUpd.err { color: var(--rose); }
 .setfoot { color: var(--muted); font-size: 13px; padding-top: 14px; border-top: 1px solid var(--line); }
