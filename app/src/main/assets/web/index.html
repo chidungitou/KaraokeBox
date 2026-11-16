@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14111b">
+<title>Karaoke Remote</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="now" id="now">
+    <div class="now-title" id="nowTitle" role="button" tabindex="0" title="Chạm để xem đủ tên bài">Chưa có bài nào</div>
+    <div class="now-row">
+      <div class="now-sub" id="nowSub">Tìm bài và bấm Chọn để bắt đầu hát</div>
+      <button class="nowheart" id="nowFav" aria-label="Thêm bài đang hát vào yêu thích" hidden>♡</button>
+    <button class="nowheart gear" id="btnSettings" aria-label="Cài đặt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
+      <button class="chip" id="who" title="Đổi tên thiết bị"></button>
+    </div>
+  </div>
+  <div class="bar" id="bar"><i id="barFill"></i></div>
+  <div class="reacts" id="reacts" hidden aria-label="Cảm xúc">
+    <button data-r="heart" aria-label="Thả tim">❤️</button>
+    <button data-r="clap" aria-label="Vỗ tay">👏</button>
+    <button data-r="firework" aria-label="Pháo hoa">🎆</button>
+    <button data-r="party" aria-label="Quẩy lên">🎉</button>
+  </div>
+  <div class="banner" id="scanBanner" hidden></div>
+  <div class="banner" id="ytBanner" hidden><span id="ytBannerText"></span><button class="link" id="ytRetry">Thử lại</button></div>
+  <div class="conn" id="conn" hidden>Mất kết nối, đang thử lại…</div>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab on" id="tabSearch" role="tab" data-tab="search">Tìm bài</button>
+  <button class="tab" id="tabFav" role="tab" data-tab="fav">Yêu thích <span class="count" id="fCount">0</span></button>
+  <button class="tab" id="tabQueue" role="tab" data-tab="queue">Đang chờ <span class="count" id="qCount">0</span></button>
+  <i class="tabind" id="tabInd" aria-hidden="true"></i>
+</nav>
+
+<main>
+  <section id="paneSearch">
+    <div class="searchwrap" id="searchwrap">
+    <div class="searchbox">
+      <input id="q" type="search" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="Tên bài, ca sĩ, mã số hoặc chữ cái đầu (vd: lt)">
+    </div>
+    <div class="srcbar">
+      <div class="seg" role="tablist" aria-label="Nguồn bài hát">
+        <button class="segbtn on" id="srcLocal" data-src="local">Trong máy</button>
+        <button class="segbtn" id="srcYt" data-src="yt">YouTube</button>
+      </div>
+      <label class="ks" id="ksWrap" hidden><input type="checkbox" id="ks" checked> thêm “karaoke”</label>
+    </div>
+    </div>
+    <ul class="sugg" id="sugg" hidden></ul>
+
+    <ul class="list" id="songs"></ul>
+    <div class="empty" id="songsEmpty" hidden>Không tìm thấy bài nào. Thử gõ không dấu hoặc chữ cái đầu.</div>
+    <div id="sentinel" class="sentinel"></div>
+
+    <div id="ytPane" hidden>
+      <div class="empty" id="ytHint">Gõ vài chữ, app sẽ gợi ý tên bài và tự hiện kết quả.<br>Cần Internet trên đầu box.</div>
+      <ul class="list yt" id="yt"></ul>
+      <div class="empty" id="ytEmpty" hidden>YouTube không trả về kết quả nào.</div>
+      <div class="empty" id="ytBusy" hidden>Đang tìm trên YouTube…</div>
+      <div class="more"><button class="btn more-btn" id="ytMore" hidden>Xem thêm kết quả</button></div>
+    </div>
+  </section>
+
+  <section id="paneFav" hidden>
+    <div class="queue-head"><span>Bài đã lưu yêu thích. Bấm ♡ ở kết quả tìm kiếm để thêm.</span></div>
+    <ul class="list favs" id="favs"></ul>
+    <div class="empty" id="favsEmpty" hidden>Chưa có bài yêu thích nào.<br>Qua tab Tìm bài, bấm ♡ cạnh bài hát để lưu lại.</div>
+  </section>
+
+  <section id="paneQueue" hidden>
+    <div class="queue-head">
+      <span id="qHint">Giữ và kéo biểu tượng ⠿ để đổi thứ tự</span>
+      <button class="link danger" id="qClear">Xóa hết</button>
+    </div>
+    <ul class="list queue" id="queue"></ul>
+    <div class="empty" id="queueEmpty" hidden>Chưa có bài nào chờ. Qua tab Tìm bài để chọn.</div>
+  </section>
+</main>
+
+<div class="sheet" id="toneSheet" hidden>
+  <div class="srow">
+    <span class="slabel">Tone</span>
+    <button class="vbtn" id="keyDown" aria-label="Giảm tone nửa cung">−</button>
+    <b class="sval" id="keyVal">0</b>
+    <button class="vbtn" id="keyUp" aria-label="Tăng tone nửa cung">+</button>
+    <button class="link" id="keyReset">Tone gốc</button>
+  </div>
+  <div class="srow">
+    <span class="slabel">Tốc độ</span>
+    <button class="vbtn" id="tempoDown" aria-label="Chậm lại">−</button>
+    <b class="sval" id="tempoVal">100%</b>
+    <button class="vbtn" id="tempoUp" aria-label="Nhanh lên">+</button>
+    <button class="link" id="tempoReset">Gốc</button>
+  </div>
+</div>
+
+<footer class="dock">
+  <div class="vol">
+    <button class="vbtn" id="volDown" aria-label="Giảm âm lượng">
+      <svg viewBox="0 0 24 24"><path d="M5 11h14v2H5z"/></svg>
+    </button>
+    <div class="volbox" id="volBox">
+      <i class="volglow" aria-hidden="true"></i>
+      <input type="range" id="vol" min="0" max="100" step="1" value="80" aria-label="Âm lượng">
+    </div>
+    <button class="vbtn" id="volUp" aria-label="Tăng âm lượng">
+      <svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+    </button>
+  </div>
+  <div class="ctrl">
+    <button class="cbtn" id="btnReplay">
+      <svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg>
+      <span>Hát lại</span>
+    </button>
+    <button class="cbtn main" id="btnToggle">
+      <svg viewBox="0 0 24 24" id="icPlay"><path d="M8 5v14l11-7z"/></svg>
+      <svg viewBox="0 0 24 24" id="icPause" hidden><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      <span id="lblToggle">Phát</span>
+    </button>
+    <button class="cbtn" id="btnNext">
+      <svg viewBox="0 0 24 24"><path d="M6 6l9 6-9 6V6zm10 0h2v12h-2z"/></svg>
+      <span>Qua bài</span>
+    </button>
+    <button class="cbtn" id="btnTone" aria-label="Đổi tone và tốc độ">
+      <svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+      <span id="lblTone">Tone</span>
+    </button>
+    <button class="cbtn qr" id="btnQr" aria-label="Giữ để hiện QR rõ trên TV">
+      <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm8-2h2v2h-2v-2zm2 2h2v2h-2v-2zm-2 2h2v2h-2v-2zm4-4h2v2h-2v-2zm0 4h2v2h-2v-2zm-2 2h2v2h-2v-2zm4 0h2v2h-2v-2z"/></svg>
+      <span>Hiện QR</span>
+    </button>
+  </div>
+</footer>
+
+<div class="modal" id="setModal" hidden>
+  <div class="modal-bg" id="setBg"></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="modal-head"><b id="setTitle">Cài đặt</b><button class="link" id="setClose">Xong</button></div>
+
+    <div class="setrow">
+      <div class="settxt">
+        <div class="setname">Kênh tiếng ca sĩ</div>
+        <div class="setnote">Với file chỉ có 1 track stereo. Đổi là nghe thấy ngay.</div>
+      </div>
+      <div class="seg" id="setVocal">
+        <button class="segbtn" data-v="1">Trái</button>
+        <button class="segbtn" data-v="0">Phải</button>
+      </div>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt">
+        <div class="setname">Hiệu ứng âm thanh phòng thu</div>
+        <div class="setnote" id="setFxNote">EQ, nén, vang và mở rộng âm trường. Đổi là nghe thấy ngay trên loa.</div>
+      </div>
+      <select id="setFx" aria-label="Hiệu ứng âm thanh"></select>
+      <div class="fxlevel" id="setFxBox">
+        <span>Cường độ</span>
+        <input type="range" id="setFxLevel" min="0" max="100" step="5" aria-label="Cường độ hiệu ứng">
+        <b id="setFxLevelVal">70%</b>
+      </div>
+    </div>
+
+    <div class="setrow">
+      <div class="settxt">
+        <div class="setname">Micro cắm vào box (USB)</div>
+        <div class="setnote" id="setMicNote">Tiếng hát đi qua box, ra cùng loa với nhạc và có vang. Để loa xa micro cho khỏi hú. Chỉ chủ phòng đổi được.</div>
+      </div>
+      <label class="sw"><input type="checkbox" id="setMic" aria-label="Bật micro"><i></i></label>
+    </div>
+
+    <div class="setrow col" id="setMicBox">
+      <div class="fxlevel">
+        <span style="min-width:64px">Âm lượng</span>
+        <input type="range" id="setMicVol" min="0" max="100" step="5" aria-label="Âm lượng micro">
+        <b id="setMicVolVal">60%</b>
+      </div>
+      <div class="fxlevel">
+        <span style="min-width:64px">Vang</span>
+        <input type="range" id="setMicEcho" min="0" max="100" step="5" aria-label="Độ vang micro">
+        <b id="setMicEchoVal">30%</b>
+      </div>
+    </div>
+
+    <div class="setrow">
+      <div class="settxt">
+        <div class="setname">Xếp hàng công bằng</div>
+        <div class="setnote">Bài của nhiều người được xen kẽ, không ai chiếm hết hàng chờ.</div>
+      </div>
+      <label class="sw"><input type="checkbox" id="setFair" aria-label="Xếp hàng công bằng"><i></i></label>
+    </div>
+
+    <div class="setrow">
+      <div class="settxt">
+        <div class="setname">Khách được qua bài của người khác</div>
+        <div class="setnote">Tắt thì khách chỉ qua được bài do chính mình chọn. Chủ phòng luôn qua được. Chỉ chủ phòng đổi được mục này.</div>
+      </div>
+      <label class="sw"><input type="checkbox" id="setGuestSkip" aria-label="Khách được qua bài của người khác"><i></i></label>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt">
+        <div class="setname">Chất lượng YouTube</div>
+        <div class="setnote">Áp dụng từ bài YouTube kế tiếp. Thấp hơn thì ít giật khi Wi-Fi yếu.</div>
+      </div>
+      <div class="seg" id="setYt"></div>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt"><div class="setname">Giao diện màn hình chờ</div></div>
+      <select id="setTheme" aria-label="Giao diện màn hình chờ"></select>
+    </div>
+
+    <div class="setfoot">Thư mục nhạc, quét lại thư viện, cập nhật YouTube: chỉnh trên TV (nút Vàng, rồi chọn dòng cuối).
+      <br><a class="link" id="setDiag" href="#" target="_blank" rel="noopener">Xem nhật ký lỗi YouTube (chủ phòng)</a></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+<script src="/app.js"></script>
+</body>
+</html>

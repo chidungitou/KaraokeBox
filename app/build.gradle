@@ -1,0 +1,84 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'com.google.devtools.ksp'
+}
+
+// Phiên bản NewPipeExtractor lấy từ gradle.properties (dòng newpipeVersion=...), xem UPDATE_YOUTUBE.md
+// Có thể ghi đè khi build: gradlew assembleDebug -PnewpipeVersion=v0.27.0
+def newpipeVersion = (project.findProperty('newpipeVersion') ?: 'v0.26.5').toString()
+
+android {
+    namespace 'com.karaokebox'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.karaokebox"
+        minSdk 21            // Android 5.0+ (Himedia Q10 chạy 5.1/7.0 đều ổn)
+        targetSdk 28         // Tránh Scoped Storage để đọc /mnt/sda1
+        versionCode 10
+        versionName "1.6.0"
+        buildConfigField "String", "NEWPIPE_VERSION", "\"${newpipeVersion}\""
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.debug   // Thay bằng keystore riêng nếu cần
+        }
+    }
+
+    buildFeatures { buildConfig true }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11   // NewPipeExtractor biên dịch bằng Java 11
+        targetCompatibility JavaVersion.VERSION_11
+        coreLibraryDesugaringEnabled true
+    }
+    kotlinOptions { jvmTarget = '11' }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+
+    packaging {
+        resources.excludes += ['META-INF/LICENSE*', 'META-INF/NOTICE*', 'META-INF/DEPENDENCIES', 'META-INF/INDEX.LIST']
+    }
+    androidResources { noCompress += ['html', 'css', 'js'] }
+}
+
+dependencies {
+    // NewPipeExtractor yêu cầu bản _nio khi minSdk < 33
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs_nio:2.0.4'
+
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+
+    def media3 = '1.3.1'
+    implementation "androidx.media3:media3-exoplayer:$media3"
+    implementation "androidx.media3:media3-ui:$media3"
+    implementation "androidx.media3:media3-common:$media3"
+    implementation "androidx.media3:media3-datasource:$media3"
+    implementation "androidx.media3:media3-database:$media3"     // SimpleCache (cache bài YouTube)
+    implementation "androidx.media3:media3-exoplayer-hls:$media3"   // dự phòng khi YouTube chỉ trả HLS
+
+    def room = '2.6.1'
+    implementation "androidx.room:room-runtime:$room"
+    implementation "androidx.room:room-ktx:$room"
+    ksp "androidx.room:room-compiler:$room"
+
+    implementation 'org.nanohttpd:nanohttpd:2.3.1'
+    implementation 'org.nanohttpd:nanohttpd-websocket:2.3.1'
+
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'com.google.zxing:core:3.5.1'
+
+    // --- YouTube (tìm kiếm + lấy link phát) ---
+    implementation "com.github.TeamNewPipe:NewPipeExtractor:${newpipeVersion}"
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+    testImplementation 'junit:junit:4.13.2'   // test bộ xử lý micro (MicProcessorTest), chạy bằng gradlew test
+}
