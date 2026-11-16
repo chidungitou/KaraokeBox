@@ -262,6 +262,7 @@ ul.list li.leaving { overflow: hidden; opacity: 0; transform: translateX(-28px);
 .btn.ghost.danger { color: var(--rose); border-color: var(--rose); background: transparent; }
 .btn.armed { background: var(--rose); color: #2a0010; }
 #setInstallUpd { width: 100%; }
+.setnote.err { color: var(--rose); }
 #setInstState.new { color: var(--amber); }
 #setInstState.err { color: var(--rose); }
 #setUpd.new { color: var(--amber); }

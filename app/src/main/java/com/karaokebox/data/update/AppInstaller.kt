@@ -71,7 +71,7 @@ object AppInstaller {
                     return@launch
                 }
                 if (chk.sameSigner == false) {
-                    fail("Bản mới ký bằng khoá khác bản đang chạy nên Android sẽ từ chối cài đè. Cần gỡ app rồi cài lại (mất hàng chờ và cài đặt), xem UPDATE_YOUTUBE.md.")
+                    fail("Bản mới ký bằng khoá khác bản đang chạy nên Android sẽ từ chối cài đè. Cần gỡ app rồi cài lại (mất hàng chờ và cài đặt), xem UPDATE_YOUTUBE.md. Trước khi gỡ, bấm Sao lưu trong Cài đặt trên điện thoại để giữ bài Yêu thích.")
                     return@launch
                 }
                 s.relaunchAfterUpdate = true   // cài xong thì BootReceiver tự mở lại app

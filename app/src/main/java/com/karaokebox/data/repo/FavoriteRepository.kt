@@ -26,6 +26,18 @@ class FavoriteRepository(private val dao: FavoriteDao, private val songDao: Song
         return dao.listSongs(clientId)
     }
 
+    /** Mọi mục Yêu thích của điện thoại này, kể cả bài chưa có trong thư viện (dùng cho sao lưu). */
+    suspend fun entries(clientId: String): List<FavoriteEntity> {
+        adoptLegacy(clientId)
+        return dao.listEntries(clientId)
+    }
+
+    /** Thêm theo đường dẫn (khôi phục sao lưu). true = thêm mới, false = đã có sẵn. */
+    suspend fun addPath(clientId: String, path: String, addedAt: Long): Boolean {
+        adoptLegacy(clientId)
+        return dao.insertIgnore(FavoriteEntity(clientId, path, addedAt)) != -1L
+    }
+
     suspend fun add(clientId: String, song: SongEntity) {
         adoptLegacy(clientId)
         dao.add(FavoriteEntity(clientId, song.filePath))

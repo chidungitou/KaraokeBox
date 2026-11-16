@@ -7,6 +7,7 @@ import com.google.gson.JsonParser
 import com.karaokebox.ServiceLocator
 import com.karaokebox.BuildConfig
 import com.karaokebox.core.text.TitleCleaner
+import com.karaokebox.data.backup.BackupManager
 import com.karaokebox.data.repo.SettingsStore
 import com.karaokebox.data.update.AppInstaller
 import com.karaokebox.data.update.AppUpdater
@@ -58,6 +59,8 @@ class Router(private val ctx: Context) {
         const val MAIN_TIMEOUT_MS = 5_000L
         /** Body JSON của web remote chỉ vài trăm byte; chặn sớm các request lớn bất thường. */
         const val MAX_BODY_BYTES = 64 * 1024L
+        /** File khôi phục sao lưu có thể có hàng nghìn bài Yêu thích nên được phép lớn hơn. */
+        const val MAX_BACKUP_BYTES = 2 * 1024 * 1024L
     }
 
     /**
@@ -72,7 +75,7 @@ class Router(private val ctx: Context) {
 
     private fun api(s: IHTTPSession, uri: String): Response {
         val m = s.method
-        val body: JsonObject = if (m == Method.POST) readBody(s) else JsonObject()
+        val body: JsonObject = if (m == Method.POST) readBody(s, if (uri == "/api/backup/restore") MAX_BACKUP_BYTES else MAX_BODY_BYTES) else JsonObject()
         val by = clientName(s)
         val cid = clientId(s)
         // Mọi request từ web remote đều tính là "còn ở trong phòng" (xem WsHub.touch)
@@ -239,6 +242,9 @@ class Router(private val ctx: Context) {
             m == Method.GET && uri == "/api/settings" -> ok(sl.settings.toLiveDto())
             m == Method.GET && uri == "/api/room" -> ok(roomInfo(cid))
             m == Method.POST && uri == "/api/settings" -> { requireOwner(cid); ok(applyLiveSettings(body, by)) }
+            // Sao lưu / khôi phục: Yêu thích của chính điện thoại này (+ cài đặt "chỉnh lúc hát" nếu là chủ phòng)
+            m == Method.GET && uri == "/api/backup" -> ok(buildBackup(cid))
+            m == Method.POST && uri == "/api/backup/restore" -> ok(restoreBackup(cid, body, by))
             m == Method.POST && uri == "/api/settings/reset" -> { requireOwner(cid); ok(resetLiveSettings(by)) }
             m == Method.POST && uri == "/api/app/update/check" -> ok(checkAppUpdate())
             m == Method.GET && uri == "/api/app/update/status" -> ok(appUpdateStatus())
@@ -358,6 +364,61 @@ class Router(private val ctx: Context) {
         return st.toLiveDto()
     }
 
+    /** Nội dung file sao lưu (điện thoại tự lưu thành file .json). Bài Yêu thích là riêng từng điện thoại nên chỉ của người gọi. */
+    private fun buildBackup(cid: String): Map<String, Any?> {
+        val items = runBlocking(Dispatchers.IO) { BackupManager.exportFavorites(cid) }
+        val st = sl.settings
+        return mapOf(
+            "app" to "KaraokeBox",
+            "format" to BackupManager.FORMAT,
+            "appVersion" to BuildConfig.VERSION_NAME,
+            "createdAt" to System.currentTimeMillis(),
+            "favorites" to items,
+            "settings" to mapOf(
+                "leftIsVocal" to st.leftIsVocal, "fairQueue" to st.fairQueue, "guestCanSkip" to st.guestCanSkip,
+                "youtubeMaxHeight" to st.youtubeMaxHeight, "stageTheme" to st.stageThemeMode,
+                "audioFx" to st.audioFx, "audioFxLevel" to st.audioFxLevel
+            )
+        )
+    }
+
+    /**
+     * Khôi phục từ file sao lưu: GỘP bài Yêu thích vào danh sách của điện thoại này (không xóa bài đang có), và áp dụng cài đặt
+     * nếu người gọi là chủ phòng (khách chỉ khôi phục được Yêu thích). Cài đặt được kiểm tra hợp lệ như khi đổi từ Cài đặt.
+     */
+    private fun restoreBackup(cid: String, body: JsonObject, by: String): Map<String, Any?> {
+        if (body.str("app") != "KaraokeBox") throw ApiException("BAD_REQUEST", "Đây không phải file sao lưu của Karaoke Box")
+        if (body.int("format") != BackupManager.FORMAT) throw ApiException("BAD_REQUEST", "File sao lưu thuộc phiên bản không hỗ trợ")
+        val favs = body.get("favorites")?.takeIf { it.isJsonArray }?.asJsonArray
+        val settingsObj = body.get("settings")?.takeIf { it.isJsonObject }?.asJsonObject
+        if (favs == null && settingsObj == null) throw ApiException("BAD_REQUEST", "File sao lưu không có dữ liệu")
+        if (favs != null && favs.size() > BackupManager.MAX_FAVORITES) {
+            throw ApiException("BAD_REQUEST", "File sao lưu có quá nhiều bài (tối đa ${BackupManager.MAX_FAVORITES})")
+        }
+
+        // Cài đặt trước: sai giá trị thì báo lỗi ngay khi chưa ghi gì
+        val patch = JsonObject()
+        if (settingsObj != null) {
+            for (k in BackupManager.SETTING_KEYS) settingsObj.get(k)?.takeIf { it.isJsonPrimitive }?.let { patch.add(k, it) }
+        }
+        var settingsApplied = false
+        var settingsSkipped = false
+        if (patch.size() > 0) {
+            if (sl.room.isOwner(cid)) { applyLiveSettings(patch, by); settingsApplied = true } else settingsSkipped = true
+        }
+
+        val r = favs?.let { runBlocking(Dispatchers.IO) { BackupManager.importFavorites(cid, it) } }
+        if (r != null) {
+            val items = runBlocking(Dispatchers.IO) { sl.favorites.list(cid) }.map { it.toDto() }
+            sl.hub.sendToClient(cid, "favorites.updated", mapOf("items" to items))
+        }
+        return mapOf(
+            "added" to (r?.added ?: 0), "existed" to (r?.existed ?: 0), "skipped" to (r?.skipped ?: 0),
+            "notInLibrary" to (r?.notInLibrary ?: 0),
+            "settingsApplied" to settingsApplied, "settingsSkipped" to settingsSkipped
+        )
+    }
+
     /** Đặt lại các cài đặt chỉnh lúc hát về mặc định (nút "Đặt lại mặc định" trong Cài đặt trên điện thoại). Chỉ chủ phòng. */
     private fun resetLiveSettings(by: String): LiveSettingsDto {
         sl.settings.resetLiveDefaults()
@@ -464,9 +525,9 @@ class Router(private val ctx: Context) {
         return clean.ifEmpty { "unknown" }
     }
 
-    private fun readBody(s: IHTTPSession): JsonObject {
+    private fun readBody(s: IHTTPSession, max: Long = MAX_BODY_BYTES): JsonObject {
         val len = s.headers["content-length"]?.trim()?.toLongOrNull() ?: 0L
-        if (len > MAX_BODY_BYTES) throw ApiException("TOO_LARGE", "Dữ liệu gửi lên quá lớn", 413)
+        if (len > max) throw ApiException("TOO_LARGE", "Dữ liệu gửi lên quá lớn", 413)
         val files = HashMap<String, String>()
         s.parseBody(files)
         val raw = files["postData"] ?: return JsonObject()

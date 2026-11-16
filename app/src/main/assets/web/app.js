@@ -682,6 +682,56 @@
       $('#setVer').textContent = 'Phiên bản: v' + i.appVersion + (i.newpipeVersion ? ' (NewPipe ' + i.newpipeVersion + ')' : '');
     } catch (e) { $('#setVer').textContent = 'Phiên bản: không đọc được'; }
   }
+  // Sao lưu / khôi phục: file nằm trên điện thoại nên còn nguyên khi gỡ cài lại app trên box
+  const backupMsg = $('#setBackupMsg');
+  const showBackupMsg = (t, err) => { backupMsg.hidden = false; backupMsg.className = 'setnote' + (err ? ' err' : ''); backupMsg.textContent = t; };
+  const readFileText = (f) => new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result || ''));
+    fr.onerror = () => rej(new Error('Không đọc được file'));
+    fr.readAsText(f);
+  });
+  $('#setBackup').addEventListener('click', async () => {
+    const btn = $('#setBackup');
+    btn.disabled = true;
+    try {
+      const data = await api('GET', '/api/backup');
+      const d = new Date(), pad = (n) => String(n).padStart(2, '0');
+      const name = 'karaokebox-backup-' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '.json';
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      showBackupMsg('Đã tạo file ' + name + ' (' + data.favorites.length + ' bài Yêu thích + cài đặt). Tìm trong thư mục Tải xuống của điện thoại và cất kỹ.');
+    } catch (e) { showBackupMsg(e.message, true); }
+    finally { btn.disabled = false; }
+  });
+  $('#setRestore').addEventListener('click', () => $('#setRestoreFile').click());
+  $('#setRestoreFile').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    if (f.size > 2 * 1024 * 1024) { showBackupMsg('File quá lớn, đây không phải file sao lưu của Karaoke Box.', true); return; }
+    let data;
+    try { data = JSON.parse(await readFileText(f)); }
+    catch (x) { showBackupMsg('Không đọc được file: không phải file sao lưu hợp lệ.', true); return; }
+    if (!data || data.app !== 'KaraokeBox') { showBackupMsg('Đây không phải file sao lưu của Karaoke Box.', true); return; }
+    const btn = $('#setRestore');
+    btn.disabled = true;
+    showBackupMsg('Đang khôi phục…');
+    try {
+      const r = await api('POST', '/api/backup/restore', data);
+      let t = 'Đã khôi phục: thêm ' + r.added + ' bài Yêu thích' + (r.existed ? ', ' + r.existed + ' bài đã có sẵn' : '') +
+        (r.skipped ? ', bỏ qua ' + r.skipped + ' mục lỗi' : '') + '.';
+      if (r.notInLibrary) t += ' ' + r.notInLibrary + ' bài trong máy sẽ hiện lại sau khi box quét thư viện nhạc.';
+      if (r.settingsApplied) t += ' Đã áp dụng cài đặt.';
+      else if (r.settingsSkipped) t += ' Cài đặt chưa áp dụng vì chỉ chủ phòng khôi phục được.';
+      showBackupMsg(t);
+    } catch (x) { showBackupMsg(x.message, true); }
+    finally { btn.disabled = false; }
+  });
+
   // Tải và cài bản mới ngay từ điện thoại: box tải APK rồi mở trình cài đặt trên TV (người dùng bấm "Cài đặt" ở TV)
   const instBtn = $('#setInstallUpd'), instState = $('#setInstState');
   let instArmed = false, instTimer, instPoll;
@@ -766,7 +816,7 @@
   });
   const openSettings = () => {
     setModal.hidden = false; loadSettings(); loadVersion(); disarmReset(); disarmInstall();
-    $('#setUpd').hidden = true; instBtn.hidden = true; instState.hidden = true;
+    $('#setUpd').hidden = true; instBtn.hidden = true; instState.hidden = true; backupMsg.hidden = true;
     // Bản mới đã biết từ lần kiểm tra trước (box tự kiểm tra lúc mở app) + tiến độ tải nếu đang tải dở
     api('GET', '/api/app/update/status').then((st) => {
       if (st.newer) {

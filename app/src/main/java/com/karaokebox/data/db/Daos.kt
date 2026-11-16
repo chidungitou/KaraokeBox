@@ -117,6 +117,14 @@ interface FavoriteDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun add(f: FavoriteEntity)
 
+    /** Như [add] nhưng cho biết có thêm mới không (-1 = đã có sẵn). Dùng khi khôi phục sao lưu. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIgnore(f: FavoriteEntity): Long
+
+    /** Mọi mục của một điện thoại, kể cả bài chưa có trong thư viện (khác [listSongs]); mới thêm xếp trước. Dùng cho sao lưu. */
+    @Query("SELECT * FROM favorites WHERE clientId = :clientId ORDER BY addedAt DESC")
+    suspend fun listEntries(clientId: String): List<FavoriteEntity>
+
     @Query("DELETE FROM favorites WHERE clientId = :clientId AND filePath = :path")
     suspend fun remove(clientId: String, path: String)
 

@@ -132,7 +132,7 @@ class AppUpdateActivity : AppCompatActivity() {
                     return@launch
                 }
                 progress.text = if (chk.sameSigner == false)
-                    "Cảnh báo: bản mới ký bằng khoá khác bản đang chạy nên Android sẽ từ chối cài đè. Cần gỡ app rồi cài lại (mất hàng chờ và cài đặt)."
+                    "Cảnh báo: bản mới ký bằng khoá khác bản đang chạy nên Android sẽ từ chối cài đè. Cần gỡ app rồi cài lại (mất hàng chờ và cài đặt). Trước khi gỡ, bấm Sao lưu trong Cài đặt trên điện thoại để giữ bài Yêu thích."
                 else "Đã tải xong, đang mở trình cài đặt..."
                 sl.settings.relaunchAfterUpdate = true
                 try {

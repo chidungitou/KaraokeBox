@@ -199,6 +199,20 @@
 
     <div class="setrow col">
       <div class="settxt">
+        <div class="setname">Sao lưu và khôi phục</div>
+        <div class="setnote">Lưu bài Yêu thích của điện thoại này (và cài đặt âm thanh, giao diện... nếu bạn là chủ phòng) thành một file trên điện thoại.
+          Khi phải gỡ cài lại app trên box hay đổi box, bấm Khôi phục và chọn file đó. Khôi phục chỉ thêm bài, không xóa bài đang có.</div>
+        <div class="setnote" id="setBackupMsg" hidden></div>
+      </div>
+      <div class="setbtns">
+        <button class="btn ghost" id="setBackup">Sao lưu</button>
+        <button class="btn ghost" id="setRestore">Khôi phục</button>
+      </div>
+      <input type="file" id="setRestoreFile" accept=".json,application/json" hidden>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt">
         <div class="setname">Ứng dụng</div>
         <div class="setnote" id="setVer">Phiên bản: đang tải…</div>
         <div class="setnote" id="setUpd" hidden></div>

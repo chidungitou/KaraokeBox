@@ -150,6 +150,20 @@ Nhạc nền được đưa qua một chuỗi xử lý như tại phòng thu: **
   - Nút **Đặt lại mặc định** (chủ phòng, bấm hai lần để xác nhận): kênh ca sĩ TRÁI, xếp hàng công bằng BẬT, khách qua bài BẬT, YouTube 720p, giao diện chờ TỰ ĐỘNG,
     hiệu ứng Phòng thu, cường độ 70%. Không đụng tới thư mục nhạc, hàng chờ, yêu thích, tone từng bài. API: `POST /api/settings/reset`.
 
+## Sao lưu và khôi phục (v1.10.0)
+Gỡ cài lại app (vd bản mới ký bằng khoá khác) hay đổi box thì database trong app mất, kéo theo bài **Yêu thích**. Giờ có thể lưu chúng ra một file nằm **trên điện thoại**
+nên không phụ thuộc app trên box.
+
+- Trên điện thoại: bánh răng > **Sao lưu và khôi phục**. **Sao lưu** tải về file `karaokebox-backup-<ngày>.json` (thường vào thư mục Tải xuống). **Khôi phục** chọn lại file đó.
+- Nội dung: bài **Yêu thích của điện thoại đang bấm** (Yêu thích vốn riêng từng điện thoại, nên mỗi người sao lưu của mình) và các cài đặt chỉnh lúc hát
+  (kênh ca sĩ, xếp hàng công bằng, khách qua bài, chất lượng YouTube, giao diện chờ, hiệu ứng âm thanh + cường độ).
+  **Không** có thư mục nhạc, cổng, tự mở khi khởi động, cache, tone từng bài (cài đặt quản trị, chỉnh trên TV) và hàng chờ.
+- Khôi phục là **gộp**: chỉ thêm bài, không xóa bài đang có; bài đã có thì bỏ qua. Cài đặt chỉ áp dụng khi người khôi phục là **chủ phòng** (khách chỉ khôi phục được Yêu thích).
+  Sau khi cài lại box, mở web remote trước tiên để thành chủ phòng rồi mới khôi phục nếu muốn lấy lại cả cài đặt.
+- Bài YouTube hiện lại ngay (file lưu cả tên, kênh, độ dài). Bài trong máy được ghi theo đường dẫn file nên hiện lại sau khi box **quét lại thư viện** (nhớ thêm lại thư mục nhạc trên TV).
+- File chứa danh sách bài của bạn nên cất kỹ như file thường. Khôi phục nhận file tối đa 2 MB (5000 bài).
+- API: `GET /api/backup` (nội dung sao lưu của người gọi), `POST /api/backup/restore` (nhận chính nội dung đó).
+
 ## Ổn định máy chủ (v1.6.0)
 - Lệnh điều khiển chuyển sang luồng Main có **thời hạn 5 giây**: nếu Main đang kẹt, điện thoại nhận lỗi 503 "Box đang bận" thay vì treo luôn luồng của máy chủ.
 - Body request tối đa **64 KB** (lớn hơn trả lỗi 413).
