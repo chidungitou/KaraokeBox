@@ -170,27 +170,6 @@
 
     <div class="setrow">
       <div class="settxt">
-        <div class="setname">Micro cắm vào box (USB)</div>
-        <div class="setnote" id="setMicNote">Tiếng hát đi qua box, ra cùng loa với nhạc và có vang. Để loa xa micro cho khỏi hú. Chỉ chủ phòng đổi được.</div>
-      </div>
-      <label class="sw"><input type="checkbox" id="setMic" aria-label="Bật micro"><i></i></label>
-    </div>
-
-    <div class="setrow col" id="setMicBox">
-      <div class="fxlevel">
-        <span style="min-width:64px">Âm lượng</span>
-        <input type="range" id="setMicVol" min="0" max="100" step="5" aria-label="Âm lượng micro">
-        <b id="setMicVolVal">60%</b>
-      </div>
-      <div class="fxlevel">
-        <span style="min-width:64px">Vang</span>
-        <input type="range" id="setMicEcho" min="0" max="100" step="5" aria-label="Độ vang micro">
-        <b id="setMicEchoVal">30%</b>
-      </div>
-    </div>
-
-    <div class="setrow">
-      <div class="settxt">
         <div class="setname">Xếp hàng công bằng</div>
         <div class="setnote">Bài của nhiều người được xen kẽ, không ai chiếm hết hàng chờ.</div>
       </div>
@@ -216,6 +195,19 @@
     <div class="setrow col">
       <div class="settxt"><div class="setname">Giao diện màn hình chờ</div></div>
       <select id="setTheme" aria-label="Giao diện màn hình chờ"></select>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt">
+        <div class="setname">Ứng dụng</div>
+        <div class="setnote" id="setVer">Phiên bản: đang tải…</div>
+        <div class="setnote" id="setUpd" hidden></div>
+      </div>
+      <div class="setbtns">
+        <button class="btn ghost" id="setCheckUpd">Kiểm tra cập nhật</button>
+        <button class="btn ghost danger" id="setReset">Đặt lại mặc định</button>
+      </div>
+      <div class="setnote" id="setResetNote">Đặt lại mặc định chỉ áp dụng cho các mục cài đặt ở trên (kênh ca sĩ, hiệu ứng âm thanh, xếp hàng, chất lượng YouTube, giao diện chờ). Chỉ chủ phòng dùng được.</div>
     </div>
 
     <div class="setfoot">Thư mục nhạc, quét lại thư viện, cập nhật YouTube: chỉnh trên TV (nút Vàng, rồi chọn dòng cuối).

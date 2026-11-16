@@ -1,10 +1,7 @@
 package com.karaokebox.ui
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -20,7 +17,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -30,7 +26,6 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.karaokebox.ServiceLocator
 import com.karaokebox.data.repo.SettingsStore
-import com.karaokebox.player.audio.MicEngine
 import com.karaokebox.server.ApiException
 import com.karaokebox.server.ToastEvent
 import com.karaokebox.service.KaraokeService
@@ -211,7 +206,6 @@ class PlayerActivity : AppCompatActivity() {
                     // Cài đặt đổi từ điện thoại / bảng nhanh: cập nhật bảng đang mở, đổi giao diện chờ ngay
                     sl.settings.changes.collect { key ->
                         settingsPanel.refresh()
-                        if (key == SettingsStore.K_MIC_ENABLED || key == SettingsStore.K_MIC_STATUS) askMicPermissionIfNeeded()
                         if (key == SettingsStore.K_STAGE_THEME) waiting.refreshTheme()
                     }
                 }
@@ -322,8 +316,6 @@ class PlayerActivity : AppCompatActivity() {
             ContextCompat.startForegroundService(this, Intent(this, KaraokeService::class.java))
         }
         waiting.refreshTheme()   // vừa đổi giao diện trong Cài đặt thì áp dụng ngay khi quay lại
-        sl.mic.start()           // micro cắm vào box (nếu đang bật trong cài đặt)
-        askMicPermissionIfNeeded()
         playerView.player = sl.controller.player.exo
         window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_FULLSCREEN or
             View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
@@ -339,32 +331,12 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onStop() {
         playerView.player = null
-        sl.mic.stop()            // không giữ micro khi app ở nền
         val leaving = !internalNav && !isChangingConfigurations
         super.onStop()
         // Bấm Home / chuyển sang app khác / thoát: DỪNG hát và tắt dịch vụ. Trước đây bộ phát vẫn chạy ngầm
         // (tiếng vẫn ra, vẫn giải mã video không có màn hình → máy giật, lag ở màn hình chính).
         if (leaving) leaveApp()
     }
-
-    // ---- Quyền micro (Android 6+ phải hỏi lúc chạy; hỏi đúng một lần cho mỗi lần bật micro) ----
-    private var micAsked = false
-
-    private fun askMicPermissionIfNeeded() {
-        if (!sl.settings.micEnabled) { micAsked = false; return }
-        if (micAsked || Build.VERSION.SDK_INT < 23 || MicEngine.hasPermission(this)) return
-        micAsked = true
-        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), REQ_MIC)
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode != REQ_MIC) return
-        if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) sl.mic.apply()
-        else marquee.post("Chưa cấp quyền micro. Vào Cài đặt hệ thống > Ứng dụng > Karaoke Box > Quyền để bật.")
-    }
-
-    private val REQ_MIC = 71
 
     private fun leaveApp() {
         if (leftApp) return

@@ -54,11 +54,7 @@ data class LiveSettingsDto(
     val audioFx: String,                  // OFF | STUDIO | HALL | LIVE | BASS | VOCAL
     val audioFxLevel: Int,                // cường độ hiệu ứng 0..100 (%)
     val audioFxModes: List<AudioFxModeDto>,
-    val guestCanSkip: Boolean = true,     // khách được qua bài của người khác (chủ phòng luôn được)
-    val micEnabled: Boolean = false,      // micro cắm vào box (USB)
-    val micVolume: Int = 60,              // 0..100 (%)
-    val micEcho: Int = 30,                // độ vang 0..100 (%)
-    val micStatus: String = "OFF"         // OFF | RUNNING | NO_PERMISSION | NO_DEVICE | ERROR
+    val guestCanSkip: Boolean = true      // khách được qua bài của người khác (chủ phòng luôn được)
 )
 
 fun SettingsStore.toLiveDto() = LiveSettingsDto(
@@ -72,11 +68,7 @@ fun SettingsStore.toLiveDto() = LiveSettingsDto(
     audioFx = audioFx,
     audioFxLevel = audioFxLevel,
     audioFxModes = StudioPreset.ALL.map { AudioFxModeDto(it.key, it.label, it.note) },
-    guestCanSkip = guestCanSkip,
-    micEnabled = micEnabled,
-    micVolume = micVolume,
-    micEcho = micEcho,
-    micStatus = ServiceLocator.mic.status.value
+    guestCanSkip = guestCanSkip
 )
 
 data class ScanProgress(val scanning: Boolean = false, val scanned: Int = 0, val found: Int = 0, val total: Int = 0)

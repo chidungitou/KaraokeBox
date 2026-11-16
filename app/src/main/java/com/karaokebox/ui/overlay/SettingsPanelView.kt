@@ -12,7 +12,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.karaokebox.ServiceLocator
 import com.karaokebox.data.repo.SettingsStore
-import com.karaokebox.player.audio.MicEngine
 import com.karaokebox.player.audio.StudioPreset
 import com.karaokebox.ui.dp
 
@@ -48,21 +47,6 @@ class SettingsPanelView(ctx: Context, private val onOpenFull: () -> Unit) : Line
         },
         Row("Cường độ hiệu ứng", { "${settings.audioFxLevel}%" }) { d ->
             settings.audioFxLevel = (settings.audioFxLevel + d * 10).coerceIn(0, 100)
-        },
-        Row("Micro cắm USB", {
-            if (!settings.micEnabled) "TẮT"
-            else when (ServiceLocator.mic.status.value) {
-                MicEngine.NO_PERMISSION -> "BẬT (chưa cấp quyền micro)"
-                MicEngine.NO_DEVICE -> "BẬT (không thấy micro)"
-                MicEngine.ERROR -> "BẬT (lỗi thu âm)"
-                else -> "BẬT"
-            }
-        }) { settings.micEnabled = !settings.micEnabled },
-        Row("Âm lượng micro", { "${settings.micVolume}%" }) { d ->
-            settings.micVolume = (settings.micVolume + d * 5).coerceIn(0, 100)
-        },
-        Row("Vang micro", { "${settings.micEcho}%" }) { d ->
-            settings.micEcho = (settings.micEcho + d * 5).coerceIn(0, 100)
         },
         Row("Xếp hàng công bằng", { if (settings.fairQueue) "BẬT" else "TẮT" }) {
             settings.fairQueue = !settings.fairQueue

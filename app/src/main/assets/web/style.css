@@ -256,5 +256,12 @@ ul.list li.leaving { overflow: hidden; opacity: 0; transform: translateX(-28px);
 .fxlevel input { flex: 1; min-width: 0; accent-color: var(--amber); height: 28px; }
 .fxlevel b { min-width: 44px; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
 .fxlevel.off { opacity: .45; }
+.setbtns { display: flex; gap: 10px; flex-wrap: wrap; }
+.setbtns .btn { flex: 1 1 140px; }
+.btn.ghost { background: var(--raise); border: 1px solid var(--line); color: var(--text); }
+.btn.ghost.danger { color: var(--rose); border-color: var(--rose); background: transparent; }
+.btn.ghost.armed { background: var(--rose); color: #2a0010; }
+#setUpd.new { color: var(--amber); }
+#setUpd.err { color: var(--rose); }
 .setfoot { color: var(--muted); font-size: 13px; padding-top: 14px; border-top: 1px solid var(--line); }
 .toast { z-index: 60; }

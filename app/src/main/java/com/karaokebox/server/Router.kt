@@ -5,8 +5,10 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.karaokebox.ServiceLocator
+import com.karaokebox.BuildConfig
 import com.karaokebox.core.text.TitleCleaner
 import com.karaokebox.data.repo.SettingsStore
+import com.karaokebox.data.update.AppUpdater
 import com.karaokebox.data.yt.YoutubeRepository
 import com.karaokebox.data.yt.YtDiag
 import com.karaokebox.data.yt.YtVideo
@@ -79,7 +81,7 @@ class Router(private val ctx: Context) {
         return when {
             m == Method.GET && uri == "/api/info" -> ok(
                 mapOf(
-                    "appVersion" to com.karaokebox.BuildConfig.VERSION_NAME, "youtube" to true,
+                    "appVersion" to BuildConfig.VERSION_NAME, "newpipeVersion" to BuildConfig.NEWPIPE_VERSION, "youtube" to true,
                     "songCount" to runBlocking(Dispatchers.IO) { sl.songRepo.count() },
                     "serverTime" to System.currentTimeMillis(),
                     "ip" to sl.serverInfo.value?.ip, "port" to sl.serverInfo.value?.port
@@ -236,6 +238,8 @@ class Router(private val ctx: Context) {
             m == Method.GET && uri == "/api/settings" -> ok(sl.settings.toLiveDto())
             m == Method.GET && uri == "/api/room" -> ok(roomInfo(cid))
             m == Method.POST && uri == "/api/settings" -> { requireOwner(cid); ok(applyLiveSettings(body, by)) }
+            m == Method.POST && uri == "/api/settings/reset" -> { requireOwner(cid); ok(resetLiveSettings(by)) }
+            m == Method.POST && uri == "/api/app/update/check" -> ok(checkAppUpdate())
 
             m == Method.GET && uri == "/api/library" -> {
                 val folders = runBlocking(Dispatchers.IO) { sl.db.folderDao().getAll() }
@@ -287,8 +291,7 @@ class Router(private val ctx: Context) {
     /**
      * Đổi cài đặt "chỉnh lúc hát". Body là JSON một phần, chỉ nhận: leftIsVocal, fairQueue (bool),
      * youtubeMaxHeight (360/480/720/1080), stageTheme (AUTO/DEFAULT/TET/NOEL/BIRTHDAY),
-     * audioFx (OFF/STUDIO/HALL/LIVE/BASS/VOCAL), audioFxLevel (0..100), guestCanSkip (bool),
-     * micEnabled (bool), micVolume (0..100), micEcho (0..100).
+     * audioFx (OFF/STUDIO/HALL/LIVE/BASS/VOCAL), audioFxLevel (0..100), guestCanSkip (bool).
      * Chỉ chủ phòng được gọi (kiểm tra ở nơi gọi); TV có bảng cài đặt nhanh riêng nên không bị chặn.
      * Kiểm tra hợp lệ TẤT CẢ trước khi ghi nên request sai thì không đổi gì.
      * Thư mục nhạc, quét lại, cổng... là cài đặt quản trị: cố ý KHÔNG mở qua đây.
@@ -302,12 +305,7 @@ class Router(private val ctx: Context) {
         val fx = body.str("audioFx")
         val fxLevel = body.int("audioFxLevel")
         val guestSkip = body.bool("guestCanSkip")
-        val micOn = body.bool("micEnabled")
-        val micVol = body.int("micVolume")
-        val micEcho = body.int("micEcho")
-        if (vocal == null && fair == null && height == null && theme == null && fx == null && fxLevel == null && guestSkip == null &&
-            micOn == null && micVol == null && micEcho == null
-        ) {
+        if (vocal == null && fair == null && height == null && theme == null && fx == null && fxLevel == null && guestSkip == null) {
             throw ApiException("BAD_REQUEST", "Không có mục cài đặt nào để đổi")
         }
         if (height != null && height !in SettingsStore.YT_HEIGHTS) {
@@ -318,12 +316,6 @@ class Router(private val ctx: Context) {
         }
         if (fxLevel != null && fxLevel !in 0..100) {
             throw ApiException("BAD_REQUEST", "Cường độ hiệu ứng phải từ 0 đến 100")
-        }
-        if (micVol != null && micVol !in 0..100) {
-            throw ApiException("BAD_REQUEST", "Âm lượng micro phải từ 0 đến 100")
-        }
-        if (micEcho != null && micEcho !in 0..100) {
-            throw ApiException("BAD_REQUEST", "Độ vang micro phải từ 0 đến 100")
         }
         val themeLabel = theme?.let { t ->
             StageTheme.MODES.firstOrNull { it.first == t }?.second
@@ -359,20 +351,34 @@ class Router(private val ctx: Context) {
             st.audioFxLevel = fxLevel
             changed += "cường độ hiệu ứng $fxLevel%"
         }
-        if (micOn != null && micOn != st.micEnabled) {
-            st.micEnabled = micOn
-            changed += "micro " + (if (micOn) "BẬT" else "TẮT")
-        }
-        if (micVol != null && micVol != st.micVolume) {
-            st.micVolume = micVol
-            changed += "âm lượng micro $micVol%"
-        }
-        if (micEcho != null && micEcho != st.micEcho) {
-            st.micEcho = micEcho
-            changed += "vang micro $micEcho%"
-        }
         if (changed.isNotEmpty()) sl.controller.announce("$by đã đổi ${changed.joinToString("; ")}")
         return st.toLiveDto()
+    }
+
+    /** Đặt lại các cài đặt chỉnh lúc hát về mặc định (nút "Đặt lại mặc định" trong Cài đặt trên điện thoại). Chỉ chủ phòng. */
+    private fun resetLiveSettings(by: String): LiveSettingsDto {
+        sl.settings.resetLiveDefaults()
+        sl.controller.announce("$by đã đặt lại cài đặt về mặc định")
+        return sl.settings.toLiveDto()
+    }
+
+    /**
+     * Hỏi GitHub Releases xem có bản app mới không (nút "Kiểm tra cập nhật" trên điện thoại). Giãn tối thiểu 15 giây giữa hai
+     * lần gọi mạng để bấm dồn không làm GitHub chặn (60 request/giờ cho mỗi IP). Việc tải và cài vẫn làm trên TV
+     * vì Android bắt người dùng bấm "Cài đặt" ngay trên màn hình của box.
+     */
+    private fun checkAppUpdate(): Map<String, Any?> {
+        val r = runBlocking(Dispatchers.IO) { AppUpdater.check(sl.settings, 15_000L) }
+        val rel = r.release
+        return mapOf(
+            "current" to BuildConfig.VERSION_NAME,
+            "newpipe" to BuildConfig.NEWPIPE_VERSION,
+            "latest" to rel?.label,
+            "latestTag" to rel?.tag,
+            "newer" to (rel != null && AppUpdater.isNewer(rel)),
+            "checkedAt" to sl.settings.appCheckedAt,
+            "error" to r.error
+        )
     }
 
     // ------------------------------------------------------------ phân quyền (chủ phòng / khách)

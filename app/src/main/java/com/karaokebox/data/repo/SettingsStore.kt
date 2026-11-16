@@ -18,14 +18,8 @@ class SettingsStore(ctx: Context) {
         const val K_AUDIO_FX = "audioFx"
         const val K_AUDIO_FX_LEVEL = "audioFxLevel"
         const val K_GUEST_SKIP = "guestCanSkip"
-        const val K_MIC_ENABLED = "micEnabled"
-        const val K_MIC_VOLUME = "micVolume"
-        const val K_MIC_ECHO = "micEcho"
-        /** Không lưu vào SharedPreferences: chỉ là tín hiệu "trạng thái micro vừa đổi" (xem [notifyChanged]). */
-        const val K_MIC_STATUS = "micStatus"
         private val LIVE_KEYS = setOf(
-            K_LEFT_IS_VOCAL, K_FAIR_QUEUE, K_YT_MAX_HEIGHT, K_STAGE_THEME, K_AUDIO_FX, K_AUDIO_FX_LEVEL, K_GUEST_SKIP,
-            K_MIC_ENABLED, K_MIC_VOLUME, K_MIC_ECHO
+            K_LEFT_IS_VOCAL, K_FAIR_QUEUE, K_YT_MAX_HEIGHT, K_STAGE_THEME, K_AUDIO_FX, K_AUDIO_FX_LEVEL, K_GUEST_SKIP
         )
 
         /** Các mức chất lượng YouTube cho phép (chiều cao tối đa, px). */
@@ -36,8 +30,17 @@ class SettingsStore(ctx: Context) {
     /** Phát khóa của cài đặt "chỉnh lúc hát" vừa đổi giá trị (từ điện thoại, TV hay màn hình Cài đặt). */
     val changes: SharedFlow<String> = _changes
 
-    /** Phát tín hiệu đổi cho một khóa không nằm trong SharedPreferences (vd trạng thái micro) để điện thoại / TV cập nhật. */
-    fun notifyChanged(key: String) { _changes.tryEmit(key) }
+    /**
+     * Đặt lại mọi cài đặt "chỉnh lúc hát" (kênh ca sĩ, xếp hàng công bằng, khách qua bài, chất lượng YouTube,
+     * giao diện chờ, hiệu ứng âm thanh + cường độ) về mặc định bằng cách xóa giá trị đã lưu.
+     * Không đụng tới thư mục nhạc, cổng, cache, tone từng bài hay dữ liệu cập nhật app. Listener phía trên tự phát
+     * [changes] cho từng khóa thật sự đổi nên TV, bài đang hát và mọi điện thoại cập nhật theo.
+     */
+    fun resetLiveDefaults() {
+        val e = sp.edit()
+        LIVE_KEYS.forEach { e.remove(it) }
+        e.apply()
+    }
 
     // Phải giữ tham chiếu mạnh: SharedPreferences chỉ giữ listener bằng WeakHashMap
     private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -68,21 +71,6 @@ class SettingsStore(ctx: Context) {
     var guestCanSkip: Boolean
         get() = sp.getBoolean(K_GUEST_SKIP, true)
         set(v) = sp.edit().putBoolean(K_GUEST_SKIP, v).apply()
-
-    /** Micro cắm vào box (USB): bật thì tiếng hát đi qua box, có vang. Mặc định TẮT; mỗi buổi hát chủ phòng tự bật. */
-    var micEnabled: Boolean
-        get() = sp.getBoolean(K_MIC_ENABLED, false)
-        set(v) = sp.edit().putBoolean(K_MIC_ENABLED, v).apply()
-
-    /** Âm lượng micro 0..100 (%), mặc định 60. */
-    var micVolume: Int
-        get() = sp.getInt(K_MIC_VOLUME, 60).coerceIn(0, 100)
-        set(v) = sp.edit().putInt(K_MIC_VOLUME, v.coerceIn(0, 100)).apply()
-
-    /** Độ vang của micro 0..100 (%), mặc định 30. */
-    var micEcho: Int
-        get() = sp.getInt(K_MIC_ECHO, 30).coerceIn(0, 100)
-        set(v) = sp.edit().putInt(K_MIC_ECHO, v.coerceIn(0, 100)).apply()
 
     var preferredPort: Int
         get() = sp.getInt("port", 8080)

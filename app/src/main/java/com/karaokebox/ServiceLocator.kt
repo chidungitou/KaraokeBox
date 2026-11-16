@@ -10,7 +10,6 @@ import com.karaokebox.data.repo.SongRepository
 import com.karaokebox.data.scan.LibraryScanner
 import com.karaokebox.data.yt.YoutubeRepository
 import com.karaokebox.player.PlaybackController
-import com.karaokebox.player.audio.MicEngine
 import com.karaokebox.server.KaraokeServer
 import com.karaokebox.server.RoomOwner
 import com.karaokebox.server.Router
@@ -36,7 +35,6 @@ object ServiceLocator {
     lateinit var scanner: LibraryScanner; private set
     lateinit var youtube: YoutubeRepository; private set
     lateinit var controller: PlaybackController; private set
-    lateinit var mic: MicEngine; private set
     lateinit var hub: WsHub; private set
     val room = RoomOwner()
     lateinit var router: Router; private set
@@ -63,7 +61,6 @@ object ServiceLocator {
         scanner = LibraryScanner(db, settings)
         youtube = YoutubeRepository(settings)
         controller = PlaybackController(app, songRepo, queueRepo, db.historyDao(), settings, youtube, appScope)
-        mic = MicEngine(app, settings, appScope)
         hub = WsHub(controller, queueRepo, scanner, settings, room)
         router = Router(app)
         hub.start()

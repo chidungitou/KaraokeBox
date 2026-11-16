@@ -647,21 +647,6 @@
     }
     $('#setFxBox').classList.toggle('off', s.audioFx === 'OFF');
 
-    // Micro cắm vào box: bật/tắt, âm lượng, vang + dòng trạng thái thật từ box (quyền, thiết bị, lỗi)
-    $('#setMic').checked = !!s.micEnabled;
-    const micVol = $('#setMicVol'), micEcho = $('#setMicEcho');
-    if (document.activeElement !== micVol) { micVol.value = s.micVolume; $('#setMicVolVal').textContent = s.micVolume + '%'; }
-    if (document.activeElement !== micEcho) { micEcho.value = s.micEcho; $('#setMicEchoVal').textContent = s.micEcho + '%'; }
-    document.querySelectorAll('#setMicBox .fxlevel').forEach((el) => el.classList.toggle('off', !s.micEnabled));
-    const micMsg = {
-      NO_PERMISSION: 'Chưa được cấp quyền micro: nhìn lên TV và bấm Cho phép bằng remote.',
-      NO_DEVICE: 'Box không thấy micro nào. Hãy cắm micro USB vào box.',
-      ERROR: 'Không mở được thiết bị thu âm của box. Thử rút cắm lại micro rồi bật lại.',
-      RUNNING: 'Đang hoạt động. Để loa xa micro cho khỏi hú.'
-    };
-    $('#setMicNote').textContent = (s.micEnabled && micMsg[s.micStatus]) ||
-      'Tiếng hát đi qua box, ra cùng loa với nhạc và có vang. Để loa xa micro cho khỏi hú. Chỉ chủ phòng đổi được.';
-
     const yt = $('#setYt'), heights = s.heightOptions || [];
     if (yt.children.length !== heights.length) {
       yt.innerHTML = heights.map((h) => `<button class="segbtn" data-h="${h}">${h}p</button>`).join('');
@@ -690,8 +675,56 @@
     try { settings = await api('POST', '/api/settings', patch); renderSettings(); }
     catch (e) { settings = prev; renderSettings(); toast(e.message); }
   }
+  // Phiên bản app + kiểm tra cập nhật + đặt lại mặc định
+  async function loadVersion() {
+    try {
+      const i = await api('GET', '/api/info');
+      $('#setVer').textContent = 'Phiên bản: v' + i.appVersion + (i.newpipeVersion ? ' (NewPipe ' + i.newpipeVersion + ')' : '');
+    } catch (e) { $('#setVer').textContent = 'Phiên bản: không đọc được'; }
+  }
+  let checkingUpd = false;
+  $('#setCheckUpd').addEventListener('click', async () => {
+    if (checkingUpd) return;
+    checkingUpd = true;
+    const btn = $('#setCheckUpd'), out = $('#setUpd');
+    btn.disabled = true; btn.textContent = 'Đang kiểm tra…';
+    out.hidden = false; out.className = 'setnote'; out.textContent = 'Đang hỏi GitHub, có thể mất vài giây…';
+    try {
+      const r = await api('POST', '/api/app/update/check', {});
+      $('#setVer').textContent = 'Phiên bản: v' + r.current + (r.newpipe ? ' (NewPipe ' + r.newpipe + ')' : '');
+      if (r.error && !r.latest) {
+        out.className = 'setnote err'; out.textContent = r.error;
+      } else if (r.newer) {
+        out.className = 'setnote new';
+        out.textContent = 'Có bản mới: ' + r.latest + '. Để cài: trên TV bấm nút Vàng, chọn dòng cuối (Cài đặt đầy đủ) rồi mở Cập nhật app.';
+      } else if (r.latest) {
+        out.textContent = 'Đang dùng bản mới nhất (GitHub: ' + r.latest + ').' + (r.error ? ' Lần kiểm tra này lỗi: ' + r.error : '');
+      } else {
+        out.textContent = 'Chưa có thông tin bản mới. Thử lại sau vài giây.';
+      }
+    } catch (e) {
+      out.className = 'setnote err'; out.textContent = e.message;
+    } finally {
+      checkingUpd = false; btn.disabled = false; btn.textContent = 'Kiểm tra cập nhật';
+    }
+  });
+  // Đặt lại mặc định: bấm hai lần (lần đầu đổi nhãn, 4 giây không bấm tiếp thì thôi) để tránh bấm nhầm
+  let resetArmed = false, resetTimer;
+  const disarmReset = () => { resetArmed = false; clearTimeout(resetTimer); $('#setReset').classList.remove('armed'); $('#setReset').textContent = 'Đặt lại mặc định'; };
+  $('#setReset').addEventListener('click', async () => {
+    if (!resetArmed) {
+      resetArmed = true;
+      $('#setReset').classList.add('armed'); $('#setReset').textContent = 'Bấm lần nữa để xác nhận';
+      resetTimer = setTimeout(disarmReset, 4000);
+      return;
+    }
+    disarmReset();
+    try { settings = await api('POST', '/api/settings/reset', {}); renderSettings(); toast('Đã đặt lại cài đặt về mặc định'); }
+    catch (e) { toast(e.message); }
+  });
   const openSettings = () => {
-    setModal.hidden = false; loadSettings();
+    setModal.hidden = false; loadSettings(); loadVersion(); disarmReset();
+    $('#setUpd').hidden = true;
     // Nhật ký lỗi chỉ chủ phòng xem được; mở bằng trình duyệt không gửi được header nên gắn mã máy vào liên kết
     $('#setDiag').href = '/api/youtube/diag?cid=' + encodeURIComponent(clientId);
   };
@@ -707,11 +740,6 @@
   $('#setFx').addEventListener('change', (e) => saveSetting({ audioFx: e.target.value }));
   $('#setFxLevel').addEventListener('input', (e) => { $('#setFxLevelVal').textContent = e.target.value + '%'; });
   $('#setFxLevel').addEventListener('change', (e) => saveSetting({ audioFxLevel: +e.target.value }));
-  $('#setMic').addEventListener('change', (e) => saveSetting({ micEnabled: e.target.checked }));
-  $('#setMicVol').addEventListener('input', (e) => { $('#setMicVolVal').textContent = e.target.value + '%'; });
-  $('#setMicVol').addEventListener('change', (e) => saveSetting({ micVolume: +e.target.value }));
-  $('#setMicEcho').addEventListener('input', (e) => { $('#setMicEchoVal').textContent = e.target.value + '%'; });
-  $('#setMicEcho').addEventListener('change', (e) => saveSetting({ micEcho: +e.target.value }));
   $('#setFair').addEventListener('change', (e) => saveSetting({ fairQueue: e.target.checked }));
   $('#setGuestSkip').addEventListener('change', (e) => saveSetting({ guestCanSkip: e.target.checked }));
   $('#setYt').addEventListener('click', (e) => {

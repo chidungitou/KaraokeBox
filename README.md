@@ -102,7 +102,7 @@ Trước đây cài đặt chỉ mở được ở màn hình ngoài (Activity r
   Lên/Xuống chọn dòng, Trái/Phải/OK đổi giá trị, BACK hoặc Vàng để đóng. Dòng cuối mở **Cài đặt đầy đủ** (thư mục nhạc, quét lại, cập nhật YouTube...).
 - **Cài đặt quản trị chỉ chỉnh trên TV** (thư mục nhạc, quét lại, đảo "Ca sĩ - Tên bài", tự mở khi khởi động, dung lượng cache, cổng): cố ý không mở qua điện thoại
   vì ai cùng Wi-Fi cũng vào được web remote.
-- API: `GET /api/settings` và `POST /api/settings` (body JSON một phần: `leftIsVocal`, `fairQueue`, `youtubeMaxHeight`, `stageTheme`, `guestCanSkip`, `audioFx`, `audioFxLevel`, `micEnabled`, `micVolume`, `micEcho`); WebSocket phát sự kiện `settings.changed`.
+- API: `GET /api/settings` và `POST /api/settings` (body JSON một phần: `leftIsVocal`, `fairQueue`, `youtubeMaxHeight`, `stageTheme`, `guestCanSkip`, `audioFx`, `audioFxLevel`); `POST /api/settings/reset` (chủ phòng) đặt lại các mục này về mặc định; WebSocket phát sự kiện `settings.changed`.
 - Nút **bánh răng trên màn hình chờ** vẫn mở thẳng Cài đặt đầy đủ như cũ.
 
 ## Hiệu ứng âm thanh phòng thu (v1.5)
@@ -136,20 +136,15 @@ Nhạc nền được đưa qua một chuỗi xử lý như tại phòng thu: **
 - **Hiện diện 30 phút**: server tính điện thoại là "còn trong phòng" nếu trong 30 phút có bất kỳ hoạt động nào (ping, thao tác), không phụ thuộc socket đang mở hay đứt.
   TV không nhấp nháy giữa màn hình chờ/QR khi ai đó tắt màn hình; lời chào khi vào phòng cũng chỉ hiện lại sau 30 phút. Socket im lặng quá 120 giây (trước đây 40 giây) mới bị đóng.
 
-## Micro cắm vào box (v1.6.0)
-Cắm micro USB (hoặc micro có jack nếu box hỗ trợ) vào box, bật **Micro cắm vào box** ở **bánh răng** trên điện thoại hoặc **nút Vàng** trên TV
-(ba dòng: bật/tắt, **Âm lượng micro**, **Vang micro**, mỗi bước 5%). Tiếng hát được thu bằng `AudioRecord`, đưa qua EQ giọng hát nhẹ → nén → vang → limiter
-(tái dùng `StudioDsp` của nhạc nền) rồi phát bằng một `AudioTrack` riêng, trộn với nhạc ở tầng mixer của Android. Không đi qua ExoPlayer nên không bị ảnh hưởng bởi đổi tone/tốc độ.
-
-- Lần đầu bật, TV hiện hộp thoại xin **quyền micro** (Android 6+): bấm **Cho phép** bằng remote. Lỡ từ chối thì vào *Cài đặt hệ thống > Ứng dụng > Karaoke Box > Quyền*.
-- Điện thoại và TV đều hiện trạng thái thật: *chưa cấp quyền*, *không thấy micro*, *lỗi thu âm*. Chỉ **chủ phòng** bật/tắt và chỉnh được (như các cài đặt âm thanh khác).
-- Micro chỉ hoạt động khi màn hình hát đang hiện; thoát app hoặc bấm Home là tắt hẳn, không giữ micro ngầm.
-- **Độ trễ**: khối 10 ms + bộ đệm AudioTrack nhỏ nhất của thiết bị (Android 8+ xin chế độ độ trễ thấp). Trên box giá rẻ tổng thường vài chục đến ~150 ms, tuỳ chip. Nếu nghe tiếng mình
-  trễ khó hát: tắt micro trong app và dùng micro cắm amply/mixer như trước.
-- **Hú**: loa và micro đặt gần nhau sẽ hú. Giảm **Âm lượng micro** hoặc để micro xa loa.
-- Tốn CPU tương đương hiệu ứng nhạc nền. Nếu thấy giật tiếng, tắt micro hoặc đặt hiệu ứng phòng thu về **Tắt**.
-- Mặc định micro **TẮT**; cài đặt được nhớ qua các buổi hát.
-- Không có micro nào được cắm: bật lên sẽ báo *không thấy micro*; nếu box có micro trong thì vẫn thu bằng micro đó. Bật micro mà không nghe gì: kiểm tra xem Android có nhận micro không (cắm lại, thử app ghi âm của box).
+## Gỡ chức năng micro, Cài đặt trên điện thoại gọn hơn (v1.8.0)
+- **Đã gỡ hoàn toàn micro cắm vào box** (thu âm, vang micro, xin quyền `RECORD_AUDIO`): micro hát đã có đầu riêng nên box không cần thu âm.
+  App không còn xin quyền micro. API `POST /api/settings` không còn nhận `micEnabled` / `micVolume` / `micEcho`. Cài đặt micro cũ (nếu có) nằm im trong máy, không ảnh hưởng gì.
+- **Cài đặt trên điện thoại (bánh răng) có thêm mục "Ứng dụng"** ở cuối:
+  - Hiện **phiên bản đang chạy** (kèm bản NewPipe).
+  - Nút **Kiểm tra cập nhật**: hỏi GitHub Releases và báo có bản mới hay chưa (giãn tối thiểu 15 giây giữa hai lần để không bị GitHub chặn).
+    Muốn cài thì làm trên TV: nút Vàng > dòng cuối (Cài đặt đầy đủ) > Cập nhật app, vì Android bắt bấm "Cài đặt" ngay trên màn hình box. API: `POST /api/app/update/check`.
+  - Nút **Đặt lại mặc định** (chủ phòng, bấm hai lần để xác nhận): kênh ca sĩ TRÁI, xếp hàng công bằng BẬT, khách qua bài BẬT, YouTube 720p, giao diện chờ TỰ ĐỘNG,
+    hiệu ứng Phòng thu, cường độ 70%. Không đụng tới thư mục nhạc, hàng chờ, yêu thích, tone từng bài. API: `POST /api/settings/reset`.
 
 ## Ổn định máy chủ (v1.6.0)
 - Lệnh điều khiển chuyển sang luồng Main có **thời hạn 5 giây**: nếu Main đang kẹt, điện thoại nhận lỗi 503 "Box đang bận" thay vì treo luôn luồng của máy chủ.
@@ -163,11 +158,11 @@ Có workflow GitHub Actions (`.github/workflows/build-apk.yml`): mỗi ngày ki�
 Cài lên box bằng cách tải `https://github.com/<tài-khoản>/<repo>/releases/latest/download/KaraokeBox.apk`. Cách thiết lập một lần (đặc biệt là **khoá ký** để cài đè không mất dữ liệu): xem `UPDATE_YOUTUBE.md`.
 
 ## Kiểm thử
-`app/src/test/.../MicProcessorTest.kt` kiểm tra bộ xử lý micro (im lặng, âm lượng, vang, trần limiter, đổi cài đặt giữa chừng). Chạy: Android Studio (chuột phải file > Run) hoặc `gradle testDebugUnitTest`.
+`app/src/test/.../UpdateVersionTest.kt` kiểm tra logic so sánh phiên bản khi tự cập nhật. Chạy: Android Studio (chuột phải file > Run) hoặc `gradle testDebugUnitTest`.
 
 ## Cấu trúc
 - `server/`: NanoHTTPD (REST + WebSocket cùng cổng 8080, tự dò 8080–8090 nếu bận)
-- `player/`: ExoPlayer, `ChannelSelectAudioProcessor` (tách L/R), `StudioAudioProcessor` (hiệu ứng phòng thu), `MicEngine` + `MicProcessor` (micro USB), `PlaybackController` (nguồn trạng thái duy nhất)
+- `player/`: ExoPlayer, `ChannelSelectAudioProcessor` (tách L/R), `StudioAudioProcessor` (hiệu ứng phòng thu), `PlaybackController` (nguồn trạng thái duy nhất)
 - `data/`: Room, quét thư viện tăng dần, parse tên file, tìm kiếm không dấu; `data/yt/`: tìm kiếm + giải link YouTube
 - `ui/`: màn hình TV, QR, chữ chạy, danh sách chờ, bảng cài đặt nhanh (`SettingsPanelView`), cài đặt đầy đủ
 - `assets/web/`: giao diện điện thoại
