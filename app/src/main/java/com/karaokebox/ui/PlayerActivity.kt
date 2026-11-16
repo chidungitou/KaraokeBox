@@ -45,6 +45,8 @@ import com.karaokebox.ui.overlay.SettingsPanelView
 import com.karaokebox.ui.overlay.TopBannerView
 import com.karaokebox.ui.overlay.WaitingView
 import com.karaokebox.ui.settings.SettingsActivity
+import com.karaokebox.data.update.AppUpdater
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(UnstableApi::class)
@@ -89,7 +91,26 @@ class PlayerActivity : AppCompatActivity() {
         ContextCompat.startForegroundService(this, Intent(this, KaraokeService::class.java))
         buildUi()
         observe()
+        watchForAppUpdate()
         // Mặc định luôn vào màn hình QR (không tự mở Cài đặt nữa; mở Cài đặt bằng nút Vàng/Settings hoặc icon bánh răng)
+    }
+
+    /** Sau khi mở app 45 giây, rồi mỗi 6 giờ: có bản app mới thì nhắc bằng dòng chữ chạy (mỗi bản chỉ nhắc một lần). */
+    private fun watchForAppUpdate() {
+        lifecycleScope.launch {
+            delay(45_000)
+            var notified = ""
+            while (true) {
+                if (sl.settings.autoUpdateCheck) {
+                    val rel = AppUpdater.check(sl.settings, 6 * 3_600_000L).release
+                    if (rel != null && AppUpdater.isNewer(rel) && rel.tag != notified) {
+                        notified = rel.tag
+                        marquee.post("Có bản Karaoke Box mới ${rel.label}. Vào Cài đặt > Cập nhật app để cài.", MarqueeToastView.Kind.INFO)
+                    }
+                }
+                delay(6 * 3_600_000L)
+            }
+        }
     }
 
     private fun buildUi() {

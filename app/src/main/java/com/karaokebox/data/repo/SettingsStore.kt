@@ -113,6 +113,30 @@ class SettingsStore(ctx: Context) {
         get() = sp.getLong("npCheckedAt", 0L)
         set(v) = sp.edit().putLong("npCheckedAt", v).apply()
 
+    /** Bản app mới nhất đã biết trên GitHub Releases (tag, link APK, dung lượng); rỗng = chưa kiểm tra. */
+    var appLatestTag: String
+        get() = sp.getString("appLatestTag", "") ?: ""
+        set(v) = sp.edit().putString("appLatestTag", v).apply()
+    var appLatestUrl: String
+        get() = sp.getString("appLatestUrl", "") ?: ""
+        set(v) = sp.edit().putString("appLatestUrl", v).apply()
+    var appLatestSize: Long
+        get() = sp.getLong("appLatestSize", 0L)
+        set(v) = sp.edit().putLong("appLatestSize", v).apply()
+    var appCheckedAt: Long
+        get() = sp.getLong("appCheckedAt", 0L)
+        set(v) = sp.edit().putLong("appCheckedAt", v).apply()
+
+    /** Tự kiểm tra bản app mới (lúc mở app và mỗi 6 giờ) và nhắc trên TV. */
+    var autoUpdateCheck: Boolean
+        get() = sp.getBoolean("autoUpdateCheck", true)
+        set(v) = sp.edit().putBoolean("autoUpdateCheck", v).apply()
+
+    /** Đã bấm cài bản mới: mở lại app ngay khi cài xong (Android không tự mở lại sau khi cài đè). */
+    var relaunchAfterUpdate: Boolean
+        get() = sp.getBoolean("relaunchAfterUpdate", false)
+        set(v) = sp.edit().putBoolean("relaunchAfterUpdate", v).apply()
+
     /** Giao diện màn hình chờ: AUTO (theo ngày) | DEFAULT | TET | NOEL | BIRTHDAY. */
     var stageThemeMode: String
         get() = sp.getString(K_STAGE_THEME, "AUTO") ?: "AUTO"

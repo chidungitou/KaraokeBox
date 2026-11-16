@@ -18,6 +18,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.karaokebox.BuildConfig
 import com.karaokebox.ServiceLocator
 import com.karaokebox.data.db.MusicFolderEntity
+import com.karaokebox.data.update.AppUpdater
 import com.karaokebox.data.yt.NewPipeUpdateChecker
 import com.karaokebox.ui.dp
 import com.karaokebox.ui.overlay.StageTheme
@@ -29,6 +30,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var list: ListView
     private lateinit var status: TextView
     private lateinit var ytBtn: Button
+    private lateinit var appBtn: Button
     private var folders: List<MusicFolderEntity> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,6 +81,12 @@ class SettingsActivity : AppCompatActivity() {
         btnRow.addView(add); btnRow.addView(scan); btnRow.addView(ytBtn)
         root.addView(btnRow)
 
+        appBtn = Button(this).apply {
+            setOnClickListener { startActivity(Intent(this@SettingsActivity, AppUpdateActivity::class.java)) }
+        }
+        refreshAppBtn()
+        root.addView(appBtn, LinearLayout.LayoutParams(-2, -2).apply { bottomMargin = dp(8) })
+
         fun check(text: String, initial: Boolean, onChange: (Boolean) -> Unit) = CheckBox(this).apply {
             this.text = text; textSize = 18f; setTextColor(Color.WHITE); isChecked = initial
             setOnCheckedChangeListener { _, v -> onChange(v) }
@@ -120,6 +128,8 @@ class SettingsActivity : AppCompatActivity() {
         lifecycleScope.launch {
             NewPipeUpdateChecker.check(sl.settings, 12 * 3_600_000L)
             refreshYtBtn()
+            AppUpdater.check(sl.settings, 6 * 3_600_000L)
+            refreshAppBtn()
         }
 
         lifecycleScope.launch {
@@ -139,6 +149,14 @@ class SettingsActivity : AppCompatActivity() {
         super.onResume()
         reload()
         refreshYtBtn()
+        refreshAppBtn()
+    }
+
+    /** Nút mở màn hình cập nhật app; thêm dấu ⚠ khi đã biết có bản mới. */
+    private fun refreshAppBtn() {
+        val rel = AppUpdater.known(sl.settings)
+        appBtn.text = if (rel != null && AppUpdater.isNewer(rel)) "⚠ Cập nhật app: có bản mới ${rel.label}"
+        else "Cập nhật app: ${BuildConfig.VERSION_NAME}"
     }
 
     /** Nút mở màn hình cập nhật YouTube; thêm dấu ⚠ khi có bản mới hoặc YouTube đang lỗi. */

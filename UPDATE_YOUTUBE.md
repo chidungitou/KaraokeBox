@@ -50,3 +50,11 @@ Build với bản mới lỗi (JitPack chưa dựng xong, thư viện đổi API
 - Đã là bản mới nhất mà vẫn `YT_CHANGED`: YouTube mới đổi, tác giả thư viện chưa kịp vá. Chờ vài giờ đến vài ngày rồi kiểm tra lại.
 - Gradle báo lỗi biên dịch ở `data/yt/` sau khi nâng: thư viện đã đổi API (thường khi nhảy bản lớn). Cần sửa code, hoặc quay lại số phiên bản cũ.
 - JitPack báo không tải được bản vừa ra: lần đầu JitPack phải dựng bản đó, chờ vài phút rồi Sync lại.
+
+## Tự cập nhật app ngay trên box (từ v1.7.0)
+App tự hỏi GitHub Releases của repo (đặt trong `app/build.gradle`, dòng `UPDATE_REPO`) xem có APK mới hơn bản đang chạy không (so phiên bản app, bằng nhau thì so phiên bản NewPipe). Có bản mới thì TV hiện dòng chữ chạy nhắc, và nút **Cài đặt > Cập nhật app** hiện dấu ⚠.
+- Bấm **Tải và cài**: app tải `KaraokeBox.apk`, mở trình cài đặt của Android, bạn chọn **Cài đặt** một lần. Cài xong app tự mở lại. Hàng chờ và cài đặt giữ nguyên nếu khoá ký khớp.
+- Android không cho app thường cài ngầm, nên luôn còn một lần bấm xác nhận (trừ box đã root).
+- Android 8+: lần đầu phải bật "Cho phép từ nguồn này" cho Karaoke Box (app tự mở sẵn màn hình đó).
+- **Bản 1.7.0 đầu tiên vẫn phải cài tay** (adb hoặc tải về), vì bản 1.6.0 đang chạy chưa có tính năng này. Từ đó trở đi cập nhật ngay trên box.
+- Muốn app nhận bản mới, nhớ tăng `versionName` trong `app/build.gradle` mỗi lần đổi code (release có tag mới).
