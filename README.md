@@ -164,6 +164,22 @@ nên không phụ thuộc app trên box.
 - File chứa danh sách bài của bạn nên cất kỹ như file thường. Khôi phục nhận file tối đa 2 MB (5000 bài).
 - API: `GET /api/backup` (nội dung sao lưu của người gọi), `POST /api/backup/restore` (nhận chính nội dung đó).
 
+## Trò chơi cuối bài: vòng xoay may mắn (v1.11.0)
+Hết mỗi bài, TV có thể quay một **vòng xoay may mắn** và hiện ai uống, uống bao nhiêu. Người uống chỉ nhìn TV; **điện thoại vẫn chỉ để chọn bài**, không hiện kết quả hay cần bấm gì.
+**Mặc định TẮT.** Cài đặt và API **riêng**, tách hẳn khỏi cài đặt thường (nút "Đặt lại mặc định" cũ không đụng tới trò chơi).
+
+- **Bật / chỉnh:** TV: Cài đặt > **Trò chơi cuối bài**. Điện thoại: nút 🎲 cạnh bánh răng (chỉ chủ phòng đổi được; khách xem được nhưng bị khóa).
+- **Khi nào quay:** bài kết thúc bình thường (hát đủ 45 giây trở lên; bài bị qua / lỗi / tua thẳng tới cuối thì không). Tần suất: mỗi bài, cách 2, cách 3 bài hoặc ngẫu nhiên 50%. Quay xong mới sang bài kế tiếp.
+  Bấm **OK / Back / Phải** trên remote TV để bỏ qua vòng đang hiện (điện thoại chủ phòng cũng có `POST /api/game/skip`). Nút Qua bài cũng dọn vòng xoay.
+- **Mức uống theo thời gian đã hát:** mới hát thì **cạn ly**; từ mốc "đã hát lâu" (mặc định **30 phút**, chỉnh 10-180) giảm xuống **một nửa** hoặc **nhấp môi** (hoặc ngẫu nhiên giữa hai mức). Mức trước mốc cũng chỉnh được (cạn ly / một nửa).
+- **"Đã hát bao lâu":** tính từ lúc mở app. Box hay tự mở app khi bật máy nên nếu **nghỉ hát quá 60 phút** (chỉnh được hoặc tắt) thì bài kế tiếp bắt đầu **đêm mới**. Có nút **Bắt đầu đêm mới** để tính lại thủ công.
+- **Các ô** (không dùng tên vì điện thoại thường chỉ là "Khách"): người vừa hát, bên trái, bên phải, hai bên, đối diện, người hát kế tiếp (bỏ nếu hàng chờ trống), cả phòng "Dô!", các anh, các chị, đặc điểm ngẫu nhiên
+  (ai đeo kính, người trẻ nhất...). Bật/tắt theo nhóm. Danh sách ô, trọng số và đặc điểm nằm ở `game/GamePreset.kt`.
+- **Khác:** số vòng tối đa mỗi đêm, thời gian hiện kết quả (5-15 giây), tiếng vòng xoay, dòng nhắc "Uống có trách nhiệm", nút **Quay thử** (không tính vào đêm).
+- Kết quả do máy chủ random sẵn nên không ai "bấm lại cho trúng"; TV tạo lại màn hình giữa vòng vẫn vẽ đúng và không quay lại lần nữa.
+- API (ghi: chủ phòng): `GET/POST /api/game/settings`, `POST /api/game/reset`, `/api/game/new-night`, `/api/game/spin-test`, `/api/game/skip`. WebSocket phát `game.settings` khi cài đặt đổi.
+- Mã: `game/` (logic thuần Kotlin: `GameEngine`, `GameSession`, `GamePreset`, `GameSettingsStore`), `ui/overlay/GameView.kt` (vẽ vòng xoay), `ui/settings/GameSettingsActivity.kt`. Có test: `GameTest`.
+
 ## Ổn định máy chủ (v1.6.0)
 - Lệnh điều khiển chuyển sang luồng Main có **thời hạn 5 giây**: nếu Main đang kẹt, điện thoại nhận lỗi 503 "Box đang bận" thay vì treo luôn luồng của máy chủ.
 - Body request tối đa **64 KB** (lớn hơn trả lỗi 413).
@@ -176,12 +192,13 @@ Có workflow GitHub Actions (`.github/workflows/build-apk.yml`): mỗi ngày ki�
 Cài lên box bằng cách tải `https://github.com/<tài-khoản>/<repo>/releases/latest/download/KaraokeBox.apk`. Cách thiết lập một lần (đặc biệt là **khoá ký** để cài đè không mất dữ liệu): xem `UPDATE_YOUTUBE.md`.
 
 ## Kiểm thử
-`app/src/test/.../UpdateVersionTest.kt` kiểm tra logic so sánh phiên bản khi tự cập nhật. Chạy: Android Studio (chuột phải file > Run) hoặc `gradle testDebugUnitTest`.
+`app/src/test/.../UpdateVersionTest.kt` kiểm tra logic so sánh phiên bản khi tự cập nhật; `game/GameTest.kt` kiểm tra mức uống theo thời gian, đêm mới, tần suất và vòng quay. Chạy: Android Studio (chuột phải file > Run) hoặc `gradle testDebugUnitTest`.
 
 ## Cấu trúc
 - `server/`: NanoHTTPD (REST + WebSocket cùng cổng 8080, tự dò 8080–8090 nếu bận)
 - `player/`: ExoPlayer, `ChannelSelectAudioProcessor` (tách L/R), `StudioAudioProcessor` (hiệu ứng phòng thu), `PlaybackController` (nguồn trạng thái duy nhất)
 - `data/`: Room, quét thư viện tăng dần, parse tên file, tìm kiếm không dấu; `data/yt/`: tìm kiếm + giải link YouTube
+- `game/`: trò chơi cuối bài (vòng xoay), logic thuần Kotlin, không phụ thuộc Android (trừ `GameSettingsStore`)
 - `ui/`: màn hình TV, QR, chữ chạy, danh sách chờ, bảng cài đặt nhanh (`SettingsPanelView`), cài đặt đầy đủ
 - `assets/web/`: giao diện điện thoại
 

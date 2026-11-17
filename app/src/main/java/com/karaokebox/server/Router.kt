@@ -14,6 +14,9 @@ import com.karaokebox.data.update.AppUpdater
 import com.karaokebox.data.yt.YoutubeRepository
 import com.karaokebox.data.yt.YtDiag
 import com.karaokebox.data.yt.YtVideo
+import com.karaokebox.game.GameOptions
+import com.karaokebox.game.GameSettingsDto
+import com.karaokebox.game.toDto
 import com.karaokebox.player.YtCache
 import com.karaokebox.player.audio.StudioPreset
 import com.karaokebox.ui.overlay.StageTheme
@@ -250,6 +253,14 @@ class Router(private val ctx: Context) {
             m == Method.GET && uri == "/api/app/update/status" -> ok(appUpdateStatus())
             m == Method.POST && uri == "/api/app/update/install" -> { requireOwner(cid); ok(startAppInstall(by)) }
 
+            // ---- Trò chơi cuối bài (vòng xoay may mắn): cài đặt và API riêng, tách khỏi /api/settings. Chỉ chủ phòng ghi được ----
+            m == Method.GET && uri == "/api/game/settings" -> ok(sl.gameSettings.toDto(sl.game))
+            m == Method.POST && uri == "/api/game/settings" -> { requireOwner(cid); ok(applyGameSettings(body)) }
+            m == Method.POST && uri == "/api/game/reset" -> { requireOwner(cid); sl.gameSettings.resetDefaults(); ok(gameSettingsChanged()) }
+            m == Method.POST && uri == "/api/game/new-night" -> { requireOwner(cid); sl.game.session.newNight(); ok(gameSettingsChanged()) }
+            m == Method.POST && uri == "/api/game/spin-test" -> { requireOwner(cid); startGameTest(); ok() }
+            m == Method.POST && uri == "/api/game/skip" -> { requireOwner(cid); c.skipGame(); ok() }
+
             m == Method.GET && uri == "/api/library" -> {
                 val folders = runBlocking(Dispatchers.IO) { sl.db.folderDao().getAll() }
                 ok(mapOf("folders" to folders, "scan" to sl.scanner.progress.value))
@@ -279,6 +290,74 @@ class Router(private val ctx: Context) {
             }
             else -> throw ApiException("BAD_REQUEST", "Không có API này: $uri", 404)
         }
+    }
+
+    // ------------------------------------------------------------ trò chơi cuối bài
+
+    /** Phát cài đặt trò chơi mới nhất cho mọi điện thoại đang mở (màn hình 🎲 cập nhật theo). */
+    private fun gameSettingsChanged(): GameSettingsDto {
+        val dto = sl.gameSettings.toDto(sl.game)
+        sl.hub.broadcast("game.settings", dto)
+        return dto
+    }
+
+    /**
+     * Đổi cài đặt trò chơi. Body là JSON một phần: enabled, groupPosition, groupGroup, groupTrait, segMen, segWomen, sound, reminder (bool),
+     * frequency, levelBefore, levelAfter (khóa trong [GameOptions]), thresholdMin, idleResetMin, maxRounds, resultSec (phải nằm trong danh sách lựa chọn).
+     * Kiểm tra hợp lệ TẤT CẢ trước khi ghi nên request sai thì không đổi gì.
+     */
+    private fun applyGameSettings(body: JsonObject): GameSettingsDto {
+        val g = sl.gameSettings
+        val enabled = body.bool("enabled")
+        val frequency = body.str("frequency")
+        val thresholdMin = body.int("thresholdMin")
+        val levelBefore = body.str("levelBefore")
+        val levelAfter = body.str("levelAfter")
+        val idleResetMin = body.int("idleResetMin")
+        val groupPosition = body.bool("groupPosition")
+        val groupGroup = body.bool("groupGroup")
+        val groupTrait = body.bool("groupTrait")
+        val segMen = body.bool("segMen")
+        val segWomen = body.bool("segWomen")
+        val maxRounds = body.int("maxRounds")
+        val resultSec = body.int("resultSec")
+        val sound = body.bool("sound")
+        val reminder = body.bool("reminder")
+        if (listOf(enabled, frequency, thresholdMin, levelBefore, levelAfter, idleResetMin, groupPosition, groupGroup, groupTrait,
+                segMen, segWomen, maxRounds, resultSec, sound, reminder).all { it == null }
+        ) throw ApiException("BAD_REQUEST", "Không có mục cài đặt nào để đổi")
+        fun bad(what: String): Nothing = throw ApiException("BAD_REQUEST", "$what không hợp lệ")
+        if (frequency != null && frequency !in GameOptions.keys(GameOptions.FREQUENCIES)) bad("Tần suất")
+        if (levelBefore != null && levelBefore !in GameOptions.keys(GameOptions.LEVEL_BEFORE)) bad("Mức trước mốc")
+        if (levelAfter != null && levelAfter !in GameOptions.keys(GameOptions.LEVEL_AFTER)) bad("Mức từ mốc trở đi")
+        if (thresholdMin != null && thresholdMin !in GameOptions.THRESHOLD_MIN) bad("Mốc thời gian")
+        if (idleResetMin != null && idleResetMin !in GameOptions.IDLE_RESET_MIN) bad("Thời gian nghỉ hát")
+        if (maxRounds != null && maxRounds !in GameOptions.MAX_ROUNDS) bad("Số vòng tối đa")
+        if (resultSec != null && resultSec !in GameOptions.RESULT_SEC) bad("Thời gian hiện kết quả")
+        enabled?.let { g.enabled = it }
+        frequency?.let { g.frequency = it }
+        thresholdMin?.let { g.thresholdMin = it }
+        levelBefore?.let { g.levelBefore = it }
+        levelAfter?.let { g.levelAfter = it }
+        idleResetMin?.let { g.idleResetMin = it }
+        groupPosition?.let { g.groupPosition = it }
+        groupGroup?.let { g.groupGroup = it }
+        groupTrait?.let { g.groupTrait = it }
+        segMen?.let { g.segMen = it }
+        segWomen?.let { g.segWomen = it }
+        maxRounds?.let { g.maxRounds = it }
+        resultSec?.let { g.resultSec = it }
+        sound?.let { g.sound = it }
+        reminder?.let { g.reminder = it }
+        return gameSettingsChanged()
+    }
+
+    /** Quay thử một vòng trên TV (không tính vào đêm, dùng được cả khi trò chơi đang tắt). */
+    private fun startGameTest() {
+        val game = sl.game
+        if (game.isRunning) throw ApiException("GAME_BUSY", "TV đang có một vòng xoay", 409)
+        if (game.availableSegments().isEmpty()) throw ApiException("BAD_REQUEST", "Chưa bật nhóm ô nào để quay")
+        sl.appScope.launch { game.play(test = true) }
     }
 
     // ------------------------------------------------------------ tiện ích

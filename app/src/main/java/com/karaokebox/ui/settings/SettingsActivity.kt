@@ -31,6 +31,7 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var status: TextView
     private lateinit var ytBtn: Button
     private lateinit var appBtn: Button
+    private lateinit var gameBtn: Button
     private var folders: List<MusicFolderEntity> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -120,6 +121,13 @@ class SettingsActivity : AppCompatActivity() {
         }
         root.addView(themeBtn, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(8) })
 
+        // Trò chơi cuối bài (vòng xoay may mắn): màn hình cài đặt riêng, tách khỏi các mục trên
+        gameBtn = Button(this).apply {
+            setOnClickListener { startActivity(Intent(this@SettingsActivity, GameSettingsActivity::class.java)) }
+        }
+        refreshGameBtn()
+        root.addView(gameBtn, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(8) })
+
         status = label("").apply { setTextColor(0xFFFFB02E.toInt()); setPadding(0, dp(8), 0, 0) }
         root.addView(status)
         setContentView(root)
@@ -150,6 +158,11 @@ class SettingsActivity : AppCompatActivity() {
         reload()
         refreshYtBtn()
         refreshAppBtn()
+        refreshGameBtn()
+    }
+
+    private fun refreshGameBtn() {
+        gameBtn.text = "Trò chơi cuối bài: " + (if (sl.gameSettings.enabled) "BẬT" else "TẮT") + "  ▸"
     }
 
     /** Nút mở màn hình cập nhật app; thêm dấu ⚠ khi đã biết có bản mới. */

@@ -26,6 +26,7 @@
     if (!r) return;
     room = { isOwner: !!r.isOwner, hasOwner: !!r.hasOwner, ownerName: r.ownerName || '' };
     renderWho();
+    if (typeof renderGame === 'function' && gameCfg) renderGame();   // đổi chủ phòng: mở / khóa các nút trò chơi
   }
   renderWho();
   whoBtn.addEventListener('click', () => {
@@ -850,6 +851,76 @@
   });
   $('#setTheme').addEventListener('change', (e) => saveSetting({ stageTheme: e.target.value }));
 
+  // ---------- Trò chơi cuối bài (vòng xoay may mắn): cài đặt riêng, chỉ chủ phòng chỉnh ----------
+  let gameCfg = null;
+  const gameModal = $('#gameModal');
+  function setOpts(el, items) {   // chỉ dựng lại danh sách khi nó thật sự đổi (dựng lại lúc đang mở ô chọn sẽ làm ô chọn đóng)
+    const sig = items.map((o) => o.key + '|' + o.label).join(';');
+    if (el._sig !== sig) {
+      el._sig = sig;
+      el.innerHTML = items.map((o) => `<option value="${esc(String(o.key))}">${esc(o.label)}</option>`).join('');
+    }
+  }
+  const numOpts = (list, fmt) => (list || []).map((n) => ({ key: n, label: fmt(n) }));
+  function renderGame() {
+    const s = gameCfg;
+    if (!s) return;
+    $('#gEnabled').checked = !!s.enabled;
+    setOpts($('#gFreq'), s.frequencyOptions || []); $('#gFreq').value = s.frequency;
+    setOpts($('#gThreshold'), numOpts(s.thresholdOptions, (n) => n + ' phút')); $('#gThreshold').value = String(s.thresholdMin);
+    setOpts($('#gBefore'), s.levelBeforeOptions || []); $('#gBefore').value = s.levelBefore;
+    setOpts($('#gAfter'), s.levelAfterOptions || []); $('#gAfter').value = s.levelAfter;
+    setOpts($('#gIdle'), numOpts(s.idleResetOptions, (n) => n === 0 ? 'Tắt (chỉ tính từ lúc mở app)' : 'Nghỉ quá ' + n + ' phút')); $('#gIdle').value = String(s.idleResetMin);
+    $('#gPos').checked = !!s.groupPosition;
+    $('#gGrp').checked = !!s.groupGroup;
+    $('#gMen').checked = !!s.segMen;
+    $('#gWomen').checked = !!s.segWomen;
+    $('#gTrait').checked = !!s.groupTrait;
+    setOpts($('#gMax'), numOpts(s.maxRoundsOptions, (n) => n === 0 ? 'Không giới hạn' : n + ' vòng')); $('#gMax').value = String(s.maxRounds);
+    setOpts($('#gResult'), numOpts(s.resultSecOptions, (n) => n + ' giây')); $('#gResult').value = String(s.resultSec);
+    $('#gSound').checked = !!s.sound;
+    $('#gRemind').checked = !!s.reminder;
+    document.querySelectorAll('#gMen, #gWomen').forEach((el) => el.closest('.setrow').classList.toggle('dim', !s.groupGroup));
+    $('#gStatus').textContent = 'Đêm hiện tại: đã hát ' + s.nightMinutes + ' phút, đã quay ' + s.roundsThisNight + ' vòng.' + (s.running ? ' TV đang quay.' : '');
+    const own = !!room.isOwner;
+    gameModal.classList.toggle('readonly', !own);
+    $('#gameOwnerNote').hidden = own;
+    gameModal.querySelectorAll('[data-own]').forEach((el) => { el.disabled = !own; });
+  }
+  async function loadGame() {
+    try { gameCfg = await api('GET', '/api/game/settings'); renderGame(); } catch (e) { /* bỏ qua */ }
+  }
+  // Cập nhật ngay trên màn hình (không chờ mạng), lỗi thì trả về giá trị cũ
+  async function saveGame(patch) {
+    if (!gameCfg) return;
+    const prev = gameCfg;
+    gameCfg = Object.assign({}, gameCfg, patch);
+    renderGame();
+    try { gameCfg = await api('POST', '/api/game/settings', patch); renderGame(); }
+    catch (e) { gameCfg = prev; renderGame(); toast(e.message); }
+  }
+  [['#gEnabled', 'enabled'], ['#gPos', 'groupPosition'], ['#gGrp', 'groupGroup'], ['#gMen', 'segMen'], ['#gWomen', 'segWomen'],
+   ['#gTrait', 'groupTrait'], ['#gSound', 'sound'], ['#gRemind', 'reminder']].forEach(([id, key]) =>
+    $(id).addEventListener('change', (e) => saveGame({ [key]: e.target.checked })));
+  [['#gFreq', 'frequency'], ['#gBefore', 'levelBefore'], ['#gAfter', 'levelAfter']].forEach(([id, key]) =>
+    $(id).addEventListener('change', (e) => saveGame({ [key]: e.target.value })));
+  [['#gThreshold', 'thresholdMin'], ['#gIdle', 'idleResetMin'], ['#gMax', 'maxRounds'], ['#gResult', 'resultSec']].forEach(([id, key]) =>
+    $(id).addEventListener('change', (e) => saveGame({ [key]: +e.target.value })));
+  $('#gTest').addEventListener('click', () => act(async () => { await api('POST', '/api/game/spin-test', {}); toast('TV đang quay thử'); }));
+  $('#gNight').addEventListener('click', () => {
+    if (!confirm('Bắt đầu đêm mới? Thời gian đã hát và số vòng đã quay sẽ tính lại từ đầu.')) return;
+    act(async () => { gameCfg = await api('POST', '/api/game/new-night', {}); renderGame(); toast('Đã bắt đầu đêm mới'); });
+  });
+  $('#gReset').addEventListener('click', () => {
+    if (!confirm('Đặt lại mọi cài đặt trò chơi về mặc định (kể cả tắt trò chơi)?')) return;
+    act(async () => { gameCfg = await api('POST', '/api/game/reset', {}); renderGame(); toast('Đã đặt lại cài đặt trò chơi'); });
+  });
+  const closeGame = () => { gameModal.hidden = true; };
+  $('#btnGame').addEventListener('click', () => { gameModal.hidden = false; loadGame(); });
+  $('#gameClose').addEventListener('click', closeGame);
+  $('#gameBg').addEventListener('click', closeGame);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !gameModal.hidden) closeGame(); });
+
   // Cảnh báo khi YouTube lỗi (mạng, bị chặn, YouTube đổi dữ liệu...)
   let ytStatus = null;
   function renderYtStatus() {
@@ -998,6 +1069,7 @@
         case 'favorites.updated': applyFavs(p.items); break;
         case 'yt.status': ytStatus = p; renderYtStatus(); break;
         case 'settings.changed': settings = p; renderSettings(); break;
+        case 'game.settings': gameCfg = p; renderGame(); break;
         case 'app.update': renderInstall(p); break;
         case 'room': applyRoom(p); break;
         case 'toast': toast(p.message); break;

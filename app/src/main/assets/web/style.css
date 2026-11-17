@@ -269,3 +269,9 @@ ul.list li.leaving { overflow: hidden; opacity: 0; transform: translateX(-28px);
 #setUpd.err { color: var(--rose); }
 .setfoot { color: var(--muted); font-size: 13px; padding-top: 14px; border-top: 1px solid var(--line); }
 .toast { z-index: 60; }
+
+/* Trò chơi cuối bài (màn hình 🎲) */
+.setrow.sub { padding-left: 14px; }
+.setrow.dim { opacity: .45; }
+.modal.readonly .setrow { opacity: .75; }
+.setrow select:disabled, .btn:disabled { opacity: .6; }

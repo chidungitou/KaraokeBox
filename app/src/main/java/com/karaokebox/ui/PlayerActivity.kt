@@ -30,6 +30,7 @@ import com.karaokebox.data.repo.SettingsStore
 import com.karaokebox.server.ApiException
 import com.karaokebox.server.ToastEvent
 import com.karaokebox.service.KaraokeService
+import com.karaokebox.ui.overlay.GameView
 import com.karaokebox.ui.overlay.MarqueeToastView
 import com.karaokebox.ui.overlay.QrHaloView
 import com.karaokebox.server.Reactions
@@ -59,6 +60,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var settingsPanel: SettingsPanelView   // cài đặt nhanh ngay trên màn hình đang hát (nút Vàng / Settings)
     private lateinit var idleHint: TextView
     private lateinit var waiting: WaitingView   // màn hình chờ chọn bài (sau khi có điện thoại quét QR)
+    private lateinit var gameView: GameView     // vòng xoay may mắn cuối bài (trò chơi uống bia, mặc định tắt)
 
     private val handler = Handler(Looper.getMainLooper())
     // Mờ lại sau khi chọn bài; không mờ khi đang rảnh hoặc khi ai đó đang giữ nút "Hiện QR" trên điện thoại
@@ -166,6 +168,10 @@ class PlayerActivity : AppCompatActivity() {
         settingsPanel = SettingsPanelView(this) { settingsPanel.hide(); openSettings() }
         root.addView(settingsPanel, FrameLayout.LayoutParams(dp(640), -2, Gravity.START or Gravity.CENTER_VERTICAL).apply { leftMargin = dp(48) })
 
+        // Trên cùng mọi thứ: vòng xoay cuối bài phủ kín màn hình khi trò chơi đang chạy
+        gameView = GameView(this)
+        root.addView(gameView, FrameLayout.LayoutParams(-1, -1))
+
         setContentView(root)
     }
 
@@ -226,6 +232,7 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 launch { sl.hub.joins.collect { onJoin(it) } }   // điện thoại mới vào phòng
                 launch { Reactions.flow.collect { reactions.spawn(it) } }
+                launch { sl.game.round.collect { gameView.show(it) } }   // tạo lại màn hình giữa vòng vẫn vẽ đúng
                 launch {
                     // Có chủ phòng (người đầu tiên quét QR to) → sang màn hình chờ chọn bài. Đặt lại / thoát app → không còn chủ → QR to
                     sl.room.state.collect { st ->
@@ -374,6 +381,16 @@ class PlayerActivity : AppCompatActivity() {
      * màn hình chờ đang giữ focus sẽ nuốt phím OK). Các phím còn lại (âm lượng...) đi đường bình thường.
      */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Vòng xoay đang hiện: OK / Back / Phải bỏ qua nó (bài kế tiếp phát ngay); phím âm lượng vẫn dùng được
+        if (gameView.isShowing) {
+            val k = event.keyCode
+            if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_BACK ||
+                k == KeyEvent.KEYCODE_DPAD_RIGHT || k == KeyEvent.KEYCODE_MEDIA_NEXT
+            ) {
+                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) sl.controller.skipGame()
+                return true
+            }
+        }
         if (settingsPanel.isShowing) {
             val k = event.keyCode
             val mine = k == KeyEvent.KEYCODE_DPAD_UP || k == KeyEvent.KEYCODE_DPAD_DOWN ||

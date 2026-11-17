@@ -15,6 +15,7 @@
     <div class="now-row">
       <div class="now-sub" id="nowSub">Tìm bài và bấm Chọn để bắt đầu hát</div>
       <button class="nowheart" id="nowFav" aria-label="Thêm bài đang hát vào yêu thích" hidden>♡</button>
+    <button class="nowheart" id="btnGame" aria-label="Trò chơi cuối bài" title="Trò chơi cuối bài">🎲</button>
     <button class="nowheart gear" id="btnSettings" aria-label="Cài đặt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
       <button class="chip" id="who" title="Đổi tên thiết bị"></button>
     </div>
@@ -228,6 +229,101 @@
 
     <div class="setfoot">Thư mục nhạc, quét lại thư viện, cập nhật YouTube: chỉnh trên TV (nút Vàng, rồi chọn dòng cuối).
       <br><a class="link" id="setDiag" href="#" target="_blank" rel="noopener">Xem nhật ký lỗi YouTube (chủ phòng)</a></div>
+  </div>
+</div>
+
+<div class="modal" id="gameModal" hidden>
+  <div class="modal-bg" id="gameBg"></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="gameTitle">
+    <div class="modal-head"><b id="gameTitle">🎲 Trò chơi cuối bài</b><button class="link" id="gameClose">Xong</button></div>
+    <div class="setnote" id="gameOwnerNote" hidden>Chỉ chủ phòng chỉnh được cài đặt trò chơi.</div>
+
+    <div class="setrow">
+      <div class="settxt">
+        <div class="setname">Bật trò chơi cuối bài</div>
+        <div class="setnote">Hết bài, TV quay vòng xoay may mắn và hiện ai uống, uống bao nhiêu. Chỉ cần nhìn TV, không phải bấm gì trên điện thoại. Mặc định tắt.</div>
+      </div>
+      <label class="sw"><input type="checkbox" id="gEnabled" data-own aria-label="Bật trò chơi cuối bài"><i></i></label>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt"><div class="setname">Tần suất</div></div>
+      <select id="gFreq" data-own aria-label="Tần suất"></select>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt">
+        <div class="setname">Mốc "đã hát lâu"</div>
+        <div class="setnote">Mới hát thì uống theo mức trước mốc, hát lâu hơn mốc thì giảm theo mức từ mốc trở đi.</div>
+      </div>
+      <select id="gThreshold" data-own aria-label="Mốc đã hát lâu"></select>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt"><div class="setname">Mức trước mốc</div></div>
+      <select id="gBefore" data-own aria-label="Mức trước mốc"></select>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt"><div class="setname">Mức từ mốc trở đi</div></div>
+      <select id="gAfter" data-own aria-label="Mức từ mốc trở đi"></select>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt">
+        <div class="setname">Tự tính đêm mới nếu nghỉ hát</div>
+        <div class="setnote">Box hay tự mở app khi bật máy. Nghỉ hát quá lâu thì bài kế tiếp tính là đêm mới (uống lại từ mức trước mốc).</div>
+      </div>
+      <select id="gIdle" data-own aria-label="Tự tính đêm mới"></select>
+    </div>
+
+    <div class="setrow">
+      <div class="settxt"><div class="setname">Ô vị trí</div><div class="setnote">Bên trái, bên phải, hai bên, đối diện người vừa hát, người hát kế tiếp...</div></div>
+      <label class="sw"><input type="checkbox" id="gPos" data-own aria-label="Ô vị trí"><i></i></label>
+    </div>
+    <div class="setrow">
+      <div class="settxt"><div class="setname">Ô nhóm</div><div class="setnote">Cả phòng "Dô!", các anh, các chị.</div></div>
+      <label class="sw"><input type="checkbox" id="gGrp" data-own aria-label="Ô nhóm"><i></i></label>
+    </div>
+    <div class="setrow sub">
+      <div class="settxt"><div class="setname">Các anh</div></div>
+      <label class="sw"><input type="checkbox" id="gMen" data-own aria-label="Các anh"><i></i></label>
+    </div>
+    <div class="setrow sub">
+      <div class="settxt"><div class="setname">Các chị</div></div>
+      <label class="sw"><input type="checkbox" id="gWomen" data-own aria-label="Các chị"><i></i></label>
+    </div>
+    <div class="setrow">
+      <div class="settxt"><div class="setname">Ô đặc điểm ngẫu nhiên</div><div class="setnote">Ai đeo kính, người trẻ nhất, người ngồi gần cửa nhất...</div></div>
+      <label class="sw"><input type="checkbox" id="gTrait" data-own aria-label="Ô đặc điểm"><i></i></label>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt"><div class="setname">Số vòng tối đa mỗi đêm</div></div>
+      <select id="gMax" data-own aria-label="Số vòng tối đa"></select>
+    </div>
+    <div class="setrow col">
+      <div class="settxt"><div class="setname">Thời gian hiện kết quả</div></div>
+      <select id="gResult" data-own aria-label="Thời gian hiện kết quả"></select>
+    </div>
+    <div class="setrow">
+      <div class="settxt"><div class="setname">Tiếng vòng xoay</div></div>
+      <label class="sw"><input type="checkbox" id="gSound" data-own aria-label="Tiếng vòng xoay"><i></i></label>
+    </div>
+    <div class="setrow">
+      <div class="settxt"><div class="setname">Dòng nhắc "Uống có trách nhiệm"</div></div>
+      <label class="sw"><input type="checkbox" id="gRemind" data-own aria-label="Dòng nhắc uống có trách nhiệm"><i></i></label>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt"><div class="setnote" id="gStatus">Đêm hiện tại: …</div></div>
+      <div class="setbtns">
+        <button class="btn ghost" id="gTest" data-own>Quay thử</button>
+        <button class="btn ghost" id="gNight" data-own>Bắt đầu đêm mới</button>
+        <button class="btn ghost danger" id="gReset" data-own>Đặt lại trò chơi</button>
+      </div>
+      <div class="setnote">Trên TV: khi vòng xoay đang hiện, bấm OK hoặc Back trên remote để bỏ qua. Đặt lại trò chơi không đụng tới các cài đặt khác.</div>
+    </div>
   </div>
 </div>
 

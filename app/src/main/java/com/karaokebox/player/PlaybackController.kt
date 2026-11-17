@@ -22,6 +22,8 @@ import com.karaokebox.data.yt.YtVideo
 import com.karaokebox.data.yt.isYoutube
 import com.karaokebox.data.yt.youtubeId
 import com.karaokebox.player.audio.ChannelSelectAudioProcessor.Mode
+import com.karaokebox.game.GameEngine
+import com.karaokebox.game.nowMs
 import com.karaokebox.player.audio.StudioPreset
 import com.karaokebox.server.ApiException
 import com.karaokebox.server.PlayerSnapshot
@@ -53,6 +55,7 @@ class PlaybackController(
     private val history: HistoryDao,
     private val settings: SettingsStore,
     private val youtube: YoutubeRepository,
+    private val game: GameEngine,
     private val scope: CoroutineScope
 ) {
     val player = KaraokePlayer(ctx)
@@ -92,6 +95,8 @@ class PlaybackController(
     private val MIN_KEY = -6
     private val MAX_KEY = 6
     private val preloader = YoutubePreloader(ctx, settings)
+    private var gameJob: Job? = null     // trò chơi cuối bài đang chạy (bài kế tiếp chờ nó xong hoặc bị bỏ qua)
+    private var songStartedAt = 0L       // lúc bắt đầu bài đang hát (nowMs), để chỉ quay vòng khi bài được hát đủ lâu
 
     /** Sức khỏe YouTube (OK / DEGRADED / DOWN) để điện thoại hiện cảnh báo. */
     val ytStatus: StateFlow<YtStatus> get() = youtube.status
@@ -108,7 +113,7 @@ class PlaybackController(
                 if (state == Player.STATE_ENDED) {
                     // Bài YouTube kết thúc quá sớm so với độ dài thật (luồng bị cắt giữa chừng) → nối lại, đừng qua bài
                     if (endedTooEarly() && tryRecover("ENDED_EARLY", null)) return
-                    scope.launch { next() }
+                    onSongEnded()
                     return
                 }
                 refresh()
@@ -173,6 +178,7 @@ class PlaybackController(
                 prefetchNext()
                 checkNextUp()
                 watchPlayback()
+                if (current != null && player.exo.isPlaying) game.session.touch()   // đang có nhạc: mốc "nghỉ hát" của trò chơi
             }
         }
     }
@@ -445,7 +451,13 @@ class PlaybackController(
         _toasts.tryEmit(ToastEvent("next_up", "Tiếp theo: ${next.song.title}", next.addedBy, next.song.toDto()))
     }
 
+    /** Sang bài kế tiếp (phím Phải / nút Qua bài). Nếu trò chơi cuối bài đang hiện thì dọn nó đi. */
     suspend fun next() {
+        cancelGame()
+        advance()
+    }
+
+    private suspend fun advance() {
         val e = queue.popFirst()
         if (e == null) {
             loadToken++
@@ -476,7 +488,7 @@ class PlaybackController(
 
     private suspend fun startSong(song: SongEntity, retry: Boolean = false, resumeMs: Long = 0L, entry: QueueEntry? = null) {
         current = song
-        if (!retry) { recoveries = 0; announcedNext = false; resetRecovery(); currentEntry = entry }
+        if (!retry) { recoveries = 0; announcedNext = false; resetRecovery(); currentEntry = entry; songStartedAt = nowMs(); game.session.onSongStart() }
         durationSaved = false
         playingOfflineId = null
         audioMode = "NONE"
@@ -570,6 +582,7 @@ class PlaybackController(
 
     fun replay() {
         if (current == null) throw ApiException("NOTHING_PLAYING", "Chưa có bài nào đang phát")
+        cancelGame()   // hát lại bài thì bỏ vòng xoay đang hiện, không được tự qua bài sau đó
         player.exo.seekTo(0)
         player.exo.play()
         announcedNext = false
@@ -656,6 +669,7 @@ class PlaybackController(
     }
 
     fun stopAll() {
+        cancelGame()
         loadToken++
         loadJob?.cancel()
         resetRecovery()
@@ -665,6 +679,34 @@ class PlaybackController(
         player.exo.stop()
         player.exo.clearMediaItems()
         refresh()
+    }
+
+    // ------------------------------------------------------------ trò chơi cuối bài
+
+    /**
+     * Bài kết thúc bình thường. Nếu trò chơi cuối bài bật và tới lượt thì quay vòng xoay trên TV (tối đa ~20 giây),
+     * xong mới sang bài kế tiếp. Bài hát chưa đủ [MIN_SONG_FOR_GAME_MS] (vd tua thẳng tới cuối) thì không quay.
+     */
+    private fun onSongEnded() {
+        cancelGame()
+        gameJob = scope.launch {
+            val playedLongEnough = nowMs() - songStartedAt >= MIN_SONG_FOR_GAME_MS
+            if (game.shouldPlay(naturalEnd = playedLongEnough)) {
+                refresh()   // điện thoại thấy "đã hết bài" trong lúc TV đang quay
+                game.play(test = false)
+            }
+            gameJob = null
+            advance()
+        }
+    }
+
+    /** Bỏ qua vòng đang hiện (phím OK/Back trên TV hoặc chủ phòng): bài kế tiếp phát ngay. */
+    fun skipGame() = game.skip()
+
+    private fun cancelGame() {
+        gameJob?.cancel()
+        gameJob = null
+        game.dismiss()
     }
 
     // ------------------------------------------------------------ nội bộ
@@ -756,6 +798,8 @@ class PlaybackController(
     private companion object {
         /** Âm lượng mặc định (%) khi mới cài app. */
         const val DEFAULT_VOLUME_PCT = 80
+        /** Bài phải được hát ít nhất chừng này mới tính vào trò chơi cuối bài. */
+        const val MIN_SONG_FOR_GAME_MS = 45_000L
         /** Lỗi riêng của từng video (xem YoutubeRepository.NO_RETRY): chờ mạng cũng vô ích nên bỏ qua bài ngay. */
         val PERMANENT_YT_ERRORS = setOf("YT_UNAVAILABLE", "YT_LIVE", "YT_NO_STREAM")
     }

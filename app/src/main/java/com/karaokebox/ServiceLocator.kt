@@ -10,6 +10,8 @@ import com.karaokebox.data.repo.SongRepository
 import com.karaokebox.data.scan.LibraryScanner
 import com.karaokebox.data.update.AppInstaller
 import com.karaokebox.data.yt.YoutubeRepository
+import com.karaokebox.game.GameEngine
+import com.karaokebox.game.GameSettingsStore
 import com.karaokebox.player.PlaybackController
 import com.karaokebox.server.KaraokeServer
 import com.karaokebox.server.RoomOwner
@@ -35,6 +37,8 @@ object ServiceLocator {
     lateinit var favorites: FavoriteRepository; private set
     lateinit var scanner: LibraryScanner; private set
     lateinit var youtube: YoutubeRepository; private set
+    lateinit var gameSettings: GameSettingsStore; private set   // cài đặt trò chơi cuối bài (tách riêng khỏi settings)
+    lateinit var game: GameEngine; private set
     lateinit var controller: PlaybackController; private set
     lateinit var hub: WsHub; private set
     val room = RoomOwner()
@@ -61,7 +65,9 @@ object ServiceLocator {
         favorites = FavoriteRepository(db.favoriteDao(), db.songDao())
         scanner = LibraryScanner(db, settings)
         youtube = YoutubeRepository(settings)
-        controller = PlaybackController(app, songRepo, queueRepo, db.historyDao(), settings, youtube, appScope)
+        gameSettings = GameSettingsStore(app)
+        game = GameEngine(gameSettings, { queueRepo.state.value.items.isNotEmpty() })
+        controller = PlaybackController(app, songRepo, queueRepo, db.historyDao(), settings, youtube, game, appScope)
         hub = WsHub(controller, queueRepo, scanner, settings, room)
         router = Router(app)
         hub.start()
