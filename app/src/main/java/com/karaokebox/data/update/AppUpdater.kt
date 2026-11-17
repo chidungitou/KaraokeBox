@@ -14,6 +14,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import com.karaokebox.ServiceLocator
+import com.karaokebox.core.net.withBundledRoots
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -42,6 +44,7 @@ object AppUpdater {
         OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
+            .withBundledRoots(ServiceLocator.app)   // box Android cũ thiếu chứng chỉ gốc → tải từ GitHub báo "Trust anchor"
             .build()
     }
 

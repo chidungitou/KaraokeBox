@@ -180,6 +180,15 @@ Hết mỗi bài, TV có thể quay một **vòng xoay may mắn** và hiện ai
 - API (ghi: chủ phòng): `GET/POST /api/game/settings`, `POST /api/game/reset`, `/api/game/new-night`, `/api/game/spin-test`, `/api/game/skip`. WebSocket phát `game.settings` khi cài đặt đổi.
 - Mã: `game/` (logic thuần Kotlin: `GameEngine`, `GameSession`, `GamePreset`, `GameSettingsStore`), `ui/overlay/GameView.kt` (vẽ vòng xoay), `ui/settings/GameSettingsActivity.kt`. Có test: `GameTest`.
 
+## Cập nhật app trên box Android cũ (v1.11.1)
+Box Android 5-7 thiếu nhiều chứng chỉ gốc mới nên **Tải và cài bản mới** báo `Trust anchor for certification path not found` dù mạng bình thường (kiểm tra bản mới vẫn chạy vì đi qua máy chủ khác).
+Từ v1.11.1 app mang theo bộ chứng chỉ gốc Mozilla (`assets/cacerts.bin`, 118 chứng chỉ): tin theo kho của hệ thống trước, chỉ khi hệ thống từ chối mới thử kho này.
+Chỉ áp dụng cho kết nối tới GitHub (cập nhật app, kiểm tra NewPipe); phần YouTube không đổi. File APK tải về vẫn bị kiểm tra đúng gói và đúng khoá ký trước khi cài.
+
+- **Lần đầu phải cài tay** bản v1.11.1 trở lên (adb hoặc USB), vì bản cũ chưa có kho chứng chỉ này. Từ đó trở đi cập nhật online được.
+- Vẫn lỗi chứng chỉ: kiểm tra **ngày giờ của box** (giờ sai cũng bị từ chối). Thông báo lỗi giờ nói rõ nguyên nhân này và cách cài tay.
+- Làm mới `cacerts.bin` (vài năm một lần, khi test `TrustedRootsTest` báo chứng chỉ hết hạn): lấy `certifi/cacert.pem` từ gói `certifi` trên PyPI, đổi từng khối PEM sang DER rồi ghi theo định dạng `[số lượng: int32][độ dài: int32][DER]...` (big-endian).
+
 ## Ổn định máy chủ (v1.6.0)
 - Lệnh điều khiển chuyển sang luồng Main có **thời hạn 5 giây**: nếu Main đang kẹt, điện thoại nhận lỗi 503 "Box đang bận" thay vì treo luôn luồng của máy chủ.
 - Body request tối đa **64 KB** (lớn hơn trả lỗi 413).

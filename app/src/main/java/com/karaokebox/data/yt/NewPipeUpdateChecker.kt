@@ -6,6 +6,8 @@ import com.karaokebox.data.repo.SettingsStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.karaokebox.ServiceLocator
+import com.karaokebox.core.net.withBundledRoots
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
@@ -27,6 +29,7 @@ object NewPipeUpdateChecker {
             .connectTimeout(8, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .callTimeout(15, TimeUnit.SECONDS)
+            .withBundledRoots(ServiceLocator.app)
             .build()
     }
 

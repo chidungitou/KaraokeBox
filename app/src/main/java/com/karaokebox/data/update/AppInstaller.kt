@@ -3,6 +3,7 @@ package com.karaokebox.data.update
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import com.karaokebox.core.net.TrustedRoots
 import com.karaokebox.data.repo.SettingsStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -86,7 +87,12 @@ object AppInstaller {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                fail("Tải thất bại: ${e.message ?: e.javaClass.simpleName}. Kiểm tra Internet của box rồi thử lại.")
+                if (TrustedRoots.isCertError(e)) {
+                    fail("Box không tin được chứng chỉ của máy chủ tải file (thường do Android cũ hoặc giờ hệ thống của box bị sai). " +
+                        "Kiểm tra ngày giờ của box. Nếu vẫn lỗi, tải KaraokeBox.apk trên trang Releases rồi cài tay bằng adb hoặc USB.")
+                } else {
+                    fail("Tải thất bại: ${e.message ?: e.javaClass.simpleName}. Kiểm tra Internet của box rồi thử lại.")
+                }
             }
         }
         return true
