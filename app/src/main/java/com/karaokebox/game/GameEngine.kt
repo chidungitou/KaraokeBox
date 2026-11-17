@@ -86,13 +86,15 @@ class GameEngine(
         if (segs.isEmpty()) return false
         val picked = pickWeighted(segs)
         val level = session.level()
-        val title = if (picked == GameSegment.TRAIT) GamePreset.TRAITS.random(random) else picked.title
+        // Chọn đặc điểm trước khi quay để chính ô trên vòng xoay ghi rõ đặc điểm (không chỉ ghi chung chung "Đặc điểm").
+        val trait = if (segs.contains(GameSegment.TRAIT)) GamePreset.TRAITS.random(random) else null
+        val title = if (picked == GameSegment.TRAIT && trait != null) trait.title else picked.title
         val action = if (picked == GameSegment.ALL) "DÔ! ${level.label}!" else "UỐNG ${level.label}!"
         val resultMs = rules.resultSec * 1000L
         val signal = CompletableDeferred<Unit>()
         val id = ids.incrementAndGet()
         val base = GameRound(
-            id = id, phase = "SPINNING", labels = segs.map { it.label }, resultIndex = segs.indexOf(picked),
+            id = id, phase = "SPINNING", labels = segs.map { if (it == GameSegment.TRAIT && trait != null) trait.label else it.label }, resultIndex = segs.indexOf(picked),
             spinMs = spinMs, resultMs = resultMs, title = title, action = action, level = level.key,
             startedAt = clock(), resultAt = 0L, sound = rules.sound, reminder = rules.reminder, test = test
         )

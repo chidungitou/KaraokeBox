@@ -205,7 +205,10 @@ class GameTest {
         val e = GameEngine(r, { true }, spinMs = 5_000L)
         val a = async { e.play() }
         delay(30)
-        assertTrue(GamePreset.TRAITS.contains(e.round.value!!.title))
+        val round = e.round.value!!
+        val trait = GamePreset.TRAITS.first { it.title == round.title }
+        // Ô trên vòng xoay phải ghi đúng đặc điểm sẽ trúng, không phải chữ "Đặc điểm" chung chung
+        assertEquals(trait.label, round.labels[round.resultIndex])
         e.dismiss(); a.await()
         Unit
     }

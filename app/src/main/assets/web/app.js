@@ -156,8 +156,12 @@
 
   function syncTopHeight() {
     document.documentElement.style.setProperty('--top-h', $('.top').offsetHeight + 'px');
+    // chiều cao thanh tab: ô tìm kiếm ghim ngay dưới thanh này
+    const tabsEl = $('.tabs');
+    if (tabsEl && tabsEl.offsetHeight) document.documentElement.style.setProperty('--tabs-h', tabsEl.offsetHeight + 'px');
   }
   new ResizeObserver(syncTopHeight).observe($('.top'));
+  if ($('.tabs')) new ResizeObserver(syncTopHeight).observe($('.tabs'));
 
   // ---------- Yêu thích ----------
   const favsEl = $('#favs');

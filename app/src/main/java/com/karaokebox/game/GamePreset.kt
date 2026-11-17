@@ -32,16 +32,19 @@ enum class GameSegment(val group: GameGroup, val label: String, val title: Strin
 
 /** Dữ liệu chỉnh "gu" trò chơi: sửa ở đây (giống StudioPreset của phần âm thanh). */
 object GamePreset {
-    /** Đặc điểm ngẫu nhiên cho ô "Đặc điểm" (viết hoa vì hiện thẳng trên TV). */
+    /** Một đặc điểm: [label] ngắn để vẽ lên ô vòng xoay, [title] là câu đầy đủ hiện ở kết quả (viết hoa vì hiện thẳng trên TV). */
+    data class Trait(val label: String, val title: String)
+
+    /** Đặc điểm ngẫu nhiên cho ô "Đặc điểm". Được chọn TRƯỚC khi quay để ô trên vòng xoay ghi rõ đặc điểm nào. */
     val TRAITS = listOf(
-        "AI ĐEO KÍNH",
-        "AI MẶC ÁO TỐI MÀU",
-        "AI ĐANG CẦM ĐIỆN THOẠI",
-        "NGƯỜI TRẺ NHẤT PHÒNG",
-        "NGƯỜI LỚN TUỔI NHẤT PHÒNG",
-        "NGƯỜI NGỒI GẦN CỬA NHẤT",
-        "AI ĐANG CẦM LY",
-        "NGƯỜI CAO NHẤT PHÒNG"
+        Trait("Ai đeo kính", "AI ĐEO KÍNH"),
+        Trait("Áo tối màu", "AI MẶC ÁO TỐI MÀU"),
+        Trait("Cầm điện thoại", "AI ĐANG CẦM ĐIỆN THOẠI"),
+        Trait("Trẻ nhất phòng", "NGƯỜI TRẺ NHẤT PHÒNG"),
+        Trait("Lớn tuổi nhất", "NGƯỜI LỚN TUỔI NHẤT PHÒNG"),
+        Trait("Gần cửa nhất", "NGƯỜI NGỒI GẦN CỬA NHẤT"),
+        Trait("Đang cầm ly", "AI ĐANG CẦM LY"),
+        Trait("Cao nhất phòng", "NGƯỜI CAO NHẤT PHÒNG")
     )
 }
 
