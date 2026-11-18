@@ -46,7 +46,7 @@ class AppUpdateActivity : AppCompatActivity() {
 
         col.addView(tv(28f).apply { text = "Cập nhật Karaoke Box" })
         col.addView(tv(16f, MUTED).apply {
-            text = "App tự lấy bản mới từ GitHub. Bấm \"Tải và cài\", đợi trình cài đặt của Android hiện ra rồi chọn Cài đặt. Hàng chờ, yêu thích và thư viện nhạc được giữ nguyên."
+            text = "Karaoke Box tự lấy bản mới. Bấm \"Tải và cài\", đợi trình cài đặt của Android hiện ra rồi chọn Cài đặt. Hàng chờ, yêu thích và thư viện nhạc được giữ nguyên."
             setPadding(0, dp(8), 0, dp(16))
         })
         verdict = tv(22f).apply { setPadding(0, 0, 0, dp(8)) }
@@ -167,7 +167,7 @@ class AppUpdateActivity : AppCompatActivity() {
         val whenText = if (checkedAt > 0) " (kiểm tra lúc ${SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.US).format(Date(checkedAt))})" else ""
         val sb = StringBuilder()
         sb.append("Đang chạy:  ").append(BuildConfig.VERSION_NAME).append(" (NewPipe ").append(BuildConfig.NEWPIPE_VERSION).append(")\n")
-        sb.append("Mới nhất trên GitHub:  ").append(rel?.label ?: "chưa kiểm tra").append(if (rel != null) whenText else "")
+        sb.append("Karaoke Box mới nhất:  ").append(rel?.label ?: "chưa kiểm tra").append(if (rel != null) whenText else "")
         if (lastError != null) sb.append("\nLần kiểm tra gần nhất lỗi: ").append(lastError)
         info.text = sb.toString()
 

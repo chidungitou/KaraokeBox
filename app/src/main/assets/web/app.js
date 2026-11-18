@@ -806,7 +806,7 @@
     checkingUpd = true;
     const btn = $('#setCheckUpd'), out = $('#setUpd');
     btn.disabled = true; btn.textContent = 'Đang kiểm tra…';
-    out.hidden = false; out.className = 'setnote'; out.textContent = 'Đang hỏi GitHub, có thể mất vài giây…';
+    out.hidden = false; out.className = 'setnote'; out.textContent = 'Đang kiểm tra bản mới của Karaoke Box, có thể mất vài giây…';
     try {
       const r = await api('POST', '/api/app/update/check', {});
       $('#setVer').textContent = 'Phiên bản: v' + r.current + (r.newpipe ? ' (NewPipe ' + r.newpipe + ')' : '');
@@ -819,7 +819,7 @@
           ? ' Bấm "Tải và cài bản mới" bên dưới: box tự tải, bạn chỉ bấm "Cài đặt" trên TV.'
           : ' Chỉ chủ phòng cài được.');
       } else if (r.latest) {
-        out.textContent = 'Đang dùng bản mới nhất (GitHub: ' + r.latest + ').' + (r.error ? ' Lần kiểm tra này lỗi: ' + r.error : '');
+        out.textContent = 'Karaoke Box đang ở bản mới nhất (' + r.latest + ').' + (r.error ? ' Lần kiểm tra này lỗi: ' + r.error : '');
       } else {
         out.textContent = 'Chưa có thông tin bản mới. Thử lại sau vài giây.';
       }
