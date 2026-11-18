@@ -315,7 +315,7 @@
     const priority = btn.dataset.act === 'prio';
     btn.disabled = true;
     act(async () => {
-      try { const d = await api('POST', '/api/queue', { songId: id, priority }); toast(addedMsg(d, priority)); }
+      try { const d = await api('POST', '/api/queue', { songId: id, priority }); toast(addedMsg(d, priority)); resetSearchAfterPick(); }
       finally { btn.disabled = false; }
     });
   });
@@ -440,6 +440,29 @@
   });
   $('#ytMore').addEventListener('click', () => ytSearch(true));
 
+  // --- Tự xóa kết quả sau khi chọn bài (cài đặt riêng của mỗi điện thoại, mặc định bật) ---
+  let clearAfterPick = store.get('kb.clearPick') !== '0';
+  $('#setClearAfterPick').checked = clearAfterPick;
+  $('#setClearAfterPick').addEventListener('change', (e) => {
+    clearAfterPick = e.target.checked;
+    store.set('kb.clearPick', clearAfterPick ? '1' : '0');
+  });
+  // Gọi sau khi Chọn / Ưu tiên thành công: xóa chữ đã gõ, xóa danh sách vừa tìm, đặt con trỏ lại ô tìm kiếm
+  function resetSearchAfterPick() {
+    if (!clearAfterPick) return;
+    const q = $('#q');
+    clearTimeout(debounce); clearTimeout(ytDebounce); clearTimeout(suggTimer);
+    q.value = '';
+    if (source === 'yt') {
+      ytToken++; yt = []; ytCursor = null; ytSearched = false; ytBusy = false; renderYt();
+    } else {
+      loadSongs(true);   // ô trống thì hiện lại danh sách mặc định như lúc mới mở
+    }
+    hideSugg();
+    window.scrollTo(0, 0);
+    q.focus();
+  }
+
   ytEl.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-act]');
     if (!btn) return;
@@ -452,6 +475,7 @@
       try {
         const d = await api('POST', '/api/youtube/queue', { videoId: v.videoId, title: v.title, channel: v.channel, durationMs: v.durationMs, priority });
         toast(addedMsg(d, priority));
+        resetSearchAfterPick();
       } finally { btn.disabled = false; }
     });
   });
