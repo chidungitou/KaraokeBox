@@ -189,6 +189,12 @@ Chỉ áp dụng cho kết nối tới GitHub (cập nhật app, kiểm tra NewP
 - Vẫn lỗi chứng chỉ: kiểm tra **ngày giờ của box** (giờ sai cũng bị từ chối). Thông báo lỗi giờ nói rõ nguyên nhân này và cách cài tay.
 - Làm mới `cacerts.bin` (vài năm một lần, khi test `TrustedRootsTest` báo chứng chỉ hết hạn): lấy `certifi/cacert.pem` từ gói `certifi` trên PyPI, đổi từng khối PEM sang DER rồi ghi theo định dạng `[số lượng: int32][độ dài: int32][DER]...` (big-endian).
 
+## Tìm bài bằng giọng nói và tự xóa kết quả (v1.12)
+
+- Trên web remote, bấm biểu tượng **micro** ở ô tìm kiếm rồi nói tên bài hoặc ca sĩ (tiếng Việt). Nói xong app tự tìm, với cả **Trong máy** lẫn **YouTube**. Bấm micro lần nữa để dừng.
+- Dùng bộ nhận giọng nói có sẵn của trình duyệt điện thoại (Chrome, Safari), cần Internet và cho phép micro. Web remote chạy bằng `http` nên Chrome có thể hỏi quyền micro mỗi lần. Nếu trình duyệt không hỗ trợ, dùng biểu tượng micro trên bàn phím.
+- Sau khi bấm **Chọn** hoặc **Ưu tiên**, app xóa chữ đã gõ, xóa danh sách vừa tìm và đặt con trỏ lại ô tìm kiếm. Tắt trong Cài đặt: **Tự xóa kết quả sau khi chọn bài** (mặc định bật, lưu riêng từng điện thoại).
+
 ## Ổn định máy chủ (v1.6.0)
 - Lệnh điều khiển chuyển sang luồng Main có **thời hạn 5 giây**: nếu Main đang kẹt, điện thoại nhận lỗi 503 "Box đang bận" thay vì treo luôn luồng của máy chủ.
 - Body request tối đa **64 KB** (lớn hơn trả lỗi 413).

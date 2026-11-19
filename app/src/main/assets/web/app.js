@@ -447,6 +447,51 @@
     clearAfterPick = e.target.checked;
     store.set('kb.clearPick', clearAfterPick ? '1' : '0');
   });
+  // --- Tìm bằng giọng nói (nhận giọng của trình duyệt trên điện thoại, tiếng Việt) ---
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null, listening = false;
+  const VOICE_ERR = {
+    'not-allowed': 'Chưa được cấp quyền micro. Hãy cho phép micro cho trang này rồi thử lại.',
+    'service-not-allowed': 'Trình duyệt không cho nhận giọng nói ở trang này. Hãy dùng biểu tượng micro trên bàn phím.',
+    'no-speech': 'Không nghe thấy giọng nói, hãy thử lại.',
+    'audio-capture': 'Không tìm thấy micro trên điện thoại.',
+    'network': 'Nhận giọng nói cần điện thoại có kết nối Internet.',
+    'language-not-supported': 'Trình duyệt chưa hỗ trợ nhận giọng tiếng Việt.'
+  };
+  function searchNow() {
+    hideSugg(); clearTimeout(debounce); clearTimeout(ytDebounce);
+    if (source === 'yt') { $('#q').blur(); ytSearch(false); } else loadSongs(true);
+  }
+  function startVoice() {
+    if (!SpeechRec) { toast('Trình duyệt này chưa hỗ trợ tìm bằng giọng nói. Hãy bấm biểu tượng micro trên bàn phím điện thoại.'); return; }
+    if (listening) { try { rec.stop(); } catch (_) {} return; }
+    const q = $('#q'), btn = $('#micBtn'), prevPh = q.placeholder;
+    let text = '';
+    try {
+      rec = new SpeechRec();
+      rec.lang = 'vi-VN'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+      rec.onstart = () => {
+        listening = true; btn.classList.add('on'); btn.setAttribute('aria-pressed', 'true');
+        q.placeholder = 'Đang nghe… hãy nói tên bài hoặc ca sĩ';
+      };
+      rec.onresult = (e) => {
+        let t = '';
+        for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+        text = t.trim(); q.value = text;   // hiện chữ ngay khi đang nói
+      };
+      rec.onerror = (e) => { if (e.error !== 'aborted') toast(VOICE_ERR[e.error] || ('Không nhận được giọng nói (' + e.error + ').')); };
+      rec.onend = () => {
+        listening = false; btn.classList.remove('on'); btn.setAttribute('aria-pressed', 'false');
+        q.placeholder = prevPh;
+        text = text.replace(/[.,!?;:。]+$/g, '').trim();
+        if (text) { q.value = text; searchNow(); }
+      };
+      hideSugg(); q.blur();
+      rec.start();
+    } catch (err) { listening = false; toast('Không bật được nhận giọng nói. Hãy dùng micro trên bàn phím.'); }
+  }
+  $('#micBtn').addEventListener('click', startVoice);
+
   // Gọi sau khi Chọn / Ưu tiên thành công: xóa chữ đã gõ, xóa danh sách vừa tìm, đặt con trỏ lại ô tìm kiếm
   function resetSearchAfterPick() {
     if (!clearAfterPick) return;

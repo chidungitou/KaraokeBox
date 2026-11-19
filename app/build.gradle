@@ -16,8 +16,8 @@ android {
         applicationId "com.karaokebox"
         minSdk 21            // Android 5.0+ (Himedia Q10 chạy 5.1/7.0 đều ổn)
         targetSdk 28         // Tránh Scoped Storage để đọc /mnt/sda1
-        versionCode 17
-        versionName "1.11.2"
+        versionCode 18
+        versionName "1.12"
         buildConfigField "String", "NEWPIPE_VERSION", "\"${newpipeVersion}\""
         // Repo GitHub chứa Releases để app tự cập nhật (ghi đè khi build: -PupdateRepo=tai-khoan/repo)
         buildConfigField "String", "UPDATE_REPO", "\"${(project.findProperty('updateRepo') ?: 'chidungitou/KaraokeBox').toString()}\""
