@@ -779,10 +779,13 @@
     catch (e) { settings = prev; renderSettings(); toast(e.message); }
   }
   // Phiên bản app + kiểm tra cập nhật + đặt lại mặc định
+  let appSigner = '';   // 6 byte đầu SHA-256 khoá ký của app trên box (so với dòng "Khoá ký" trong ghi chú release)
+  const verText = (v, np) => 'Phiên bản: v' + v + (np ? ' (NewPipe ' + np + ')' : '') + (appSigner ? ' · Khoá ký: ' + appSigner : '');
   async function loadVersion() {
     try {
       const i = await api('GET', '/api/info');
-      $('#setVer').textContent = 'Phiên bản: v' + i.appVersion + (i.newpipeVersion ? ' (NewPipe ' + i.newpipeVersion + ')' : '');
+      appSigner = i.signer || '';
+      $('#setVer').textContent = verText(i.appVersion, i.newpipeVersion);
     } catch (e) { $('#setVer').textContent = 'Phiên bản: không đọc được'; }
   }
   // Sao lưu / khôi phục: file nằm trên điện thoại nên còn nguyên khi gỡ cài lại app trên box
@@ -883,7 +886,7 @@
     out.hidden = false; out.className = 'setnote'; out.textContent = 'Đang kiểm tra bản mới của Karaoke Box, có thể mất vài giây…';
     try {
       const r = await api('POST', '/api/app/update/check', {});
-      $('#setVer').textContent = 'Phiên bản: v' + r.current + (r.newpipe ? ' (NewPipe ' + r.newpipe + ')' : '');
+      $('#setVer').textContent = verText(r.current, r.newpipe);
       showInstallBtn(!!r.newer);
       if (r.error && !r.latest) {
         out.className = 'setnote err'; out.textContent = r.error;

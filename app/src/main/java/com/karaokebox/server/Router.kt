@@ -89,6 +89,7 @@ class Router(private val ctx: Context) {
             m == Method.GET && uri == "/api/info" -> ok(
                 mapOf(
                     "appVersion" to BuildConfig.VERSION_NAME, "newpipeVersion" to BuildConfig.NEWPIPE_VERSION, "youtube" to true,
+                    "signer" to AppUpdater.selfSigner(ctx),
                     "songCount" to runBlocking(Dispatchers.IO) { sl.songRepo.count() },
                     "serverTime" to System.currentTimeMillis(),
                     "ip" to sl.serverInfo.value?.ip, "port" to sl.serverInfo.value?.port

@@ -33,6 +33,7 @@ Build với bản mới lỗi (JitPack chưa dựng xong, thư viện đổi API
    - Windows: `certutil -encode %USERPROFILE%\.android\debug.keystore ks.b64` rồi mở `ks.b64`, bỏ dòng đầu và dòng cuối (BEGIN/END), gộp phần còn lại thành một chuỗi.
    - macOS/Linux: `base64 -w0 ~/.android/debug.keystore` (macOS: `base64 -i ~/.android/debug.keystore`).
    - Trong repo: **Settings > Secrets and variables > Actions > New repository secret**, tên `DEBUG_KEYSTORE_BASE64`, dán chuỗi vừa có.
+   Từ v1.12.2 workflow ký thẳng bằng file khoá này, kiểm tra lại APK sau khi build (sai khoá thì báo lỗi, không đăng release) và ghi dòng **Khoá ký APK (SHA-256)** vào ghi chú của release. Trong Cài đặt trên điện thoại, dòng **Phiên bản** có thêm **Khoá ký: AB:CD:...** (6 byte đầu); hai bên phải khớp nhau thì mới cài đè được. Khi lệch, thông báo lỗi cũng in cả hai khoá.
    Không làm bước này thì workflow vẫn build được nhưng APK ký bằng khoá tạm: lần đầu phải gỡ app cũ trên box rồi cài lại (mất hàng chờ và cài đặt), và release có ghi cảnh báo.
 3. Bật tính năng tạo release: **Settings > Actions > General > Workflow permissions > Read and write permissions** (workflow đã khai báo `contents: write`, nhưng một số tổ chức khoá mặc định).
 

@@ -8,6 +8,12 @@ plugins {
 // Có thể ghi đè khi build: gradlew assembleDebug -PnewpipeVersion=v0.27.0
 def newpipeVersion = (project.findProperty('newpipeVersion') ?: 'v0.26.5').toString()
 
+// Khoá ký cố định cho CI: workflow ghi secret DEBUG_KEYSTORE_BASE64 ra file rồi đặt KB_KEYSTORE trỏ tới đó.
+// Ký thẳng bằng file này (không phụ thuộc vị trí ~/.android) để mọi bản build đều cùng một khoá và cài đè được.
+// Build trên máy (Android Studio) không đặt KB_KEYSTORE nên vẫn dùng khoá debug mặc định như trước.
+def ciKeystore = System.getenv('KB_KEYSTORE')
+def useCiKey = ciKeystore != null && !ciKeystore.isEmpty() && new File(ciKeystore).exists()
+
 android {
     namespace 'com.karaokebox'
     compileSdk 34
@@ -16,17 +22,31 @@ android {
         applicationId "com.karaokebox"
         minSdk 21            // Android 5.0+ (Himedia Q10 chạy 5.1/7.0 đều ổn)
         targetSdk 28         // Tránh Scoped Storage để đọc /mnt/sda1
-        versionCode 19
-        versionName "1.12.1"
+        versionCode 20
+        versionName "1.12.2"
         buildConfigField "String", "NEWPIPE_VERSION", "\"${newpipeVersion}\""
         // Repo GitHub chứa Releases để app tự cập nhật (ghi đè khi build: -PupdateRepo=tai-khoan/repo)
         buildConfigField "String", "UPDATE_REPO", "\"${(project.findProperty('updateRepo') ?: 'chidungitou/KaraokeBox').toString()}\""
     }
 
+    signingConfigs {
+        ci {
+            if (useCiKey) {
+                storeFile new File(ciKeystore)
+                storePassword 'android'
+                keyAlias 'androiddebugkey'
+                keyPassword 'android'
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            if (useCiKey) signingConfig signingConfigs.ci
+        }
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug   // Thay bằng keystore riêng nếu cần
+            signingConfig useCiKey ? signingConfigs.ci : signingConfigs.debug   // Thay bằng keystore riêng nếu cần
         }
     }
 

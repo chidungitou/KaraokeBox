@@ -38,7 +38,7 @@ object AppUpdater {
     /** error != null: lần kiểm tra này thất bại; release là giá trị đã lưu từ lần trước (nếu có). */
     data class Result(val release: Release?, val error: String?)
 
-    data class ApkCheck(val validPackage: Boolean, val sameSigner: Boolean?)
+    data class ApkCheck(val validPackage: Boolean, val sameSigner: Boolean?, val mineFp: String? = null, val theirsFp: String? = null)
 
     private val client by lazy {
         OkHttpClient.Builder()
@@ -156,14 +156,36 @@ object AppUpdater {
         val info = try { pm.getPackageArchiveInfo(apk.absolutePath, PackageManager.GET_SIGNATURES) } catch (e: Exception) { null }
             ?: return ApkCheck(false, null)
         if (info.packageName != ctx.packageName) return ApkCheck(false, null)
+        var mineFp: String? = null
+        var theirsFp: String? = null
         val same: Boolean? = try {
             val mine = pm.getPackageInfo(ctx.packageName, PackageManager.GET_SIGNATURES).signatures
             val theirs = info.signatures
+            mineFp = signerFingerprint(mine)
+            theirsFp = signerFingerprint(theirs)
             if (mine == null || theirs == null || mine.isEmpty() || theirs.isEmpty()) null
             else mine.map { it.toCharsString() }.toSet() == theirs.map { it.toCharsString() }.toSet()
         } catch (e: Exception) { null }
-        return ApkCheck(true, same)
+        return ApkCheck(true, same, mineFp, theirsFp)
     }
+
+    /** 6 byte đầu của SHA-256 chứng chỉ ký (dạng AB:CD:...), để so với dòng "Khoá ký" trong ghi chú của release. */
+    @Suppress("DEPRECATION")
+    fun signerFingerprint(sigs: Array<android.content.pm.Signature>?): String? {
+        val s = sigs?.firstOrNull() ?: return null
+        val d = java.security.MessageDigest.getInstance("SHA-256").digest(s.toByteArray())
+        return d.take(6).joinToString(":") { String.format("%02X", it) }
+    }
+
+    /** Khoá ký của chính app đang chạy. */
+    @Suppress("DEPRECATION")
+    fun selfSigner(ctx: Context): String? = try {
+        signerFingerprint(ctx.packageManager.getPackageInfo(ctx.packageName, PackageManager.GET_SIGNATURES).signatures)
+    } catch (e: Exception) { null }
+
+    /** Đoạn chú thích hai khoá để biết khoá nào đang lệch. */
+    fun signerHint(chk: ApkCheck): String =
+        if (chk.mineFp != null && chk.theirsFp != null) " [Khoá đang chạy: ${chk.mineFp}, khoá bản mới: ${chk.theirsFp}]" else ""
 
     /** Android 8+ bắt người dùng cho phép app này "cài ứng dụng không rõ nguồn gốc". */
     fun needsInstallPermission(ctx: Context): Boolean =
