@@ -82,6 +82,12 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .btn.prio { border: 1.5px solid var(--rose); color: var(--rose); }
 .btn:active { transform: scale(.96); }
 .btn[disabled] { opacity: .5; }
+/* Hiệu ứng báo đã chọn / ưu tiên bài */
+li.picked { box-shadow: inset 4px 0 0 var(--ok); animation: pickflash 2s ease-out; }
+@keyframes pickflash { from { background-color: rgba(88,214,160,.40); } }
+.btn.add.done, .btn.prio.done { background: var(--ok); color: #05281b; animation: pickpop .3s ease-out; }
+.btn.prio.done { border-color: var(--ok); }
+@keyframes pickpop { 0% { transform: scale(.9); } 60% { transform: scale(1.07); } 100% { transform: scale(1); } }
 
 .empty { padding: 36px 24px; text-align: center; color: var(--muted); }
 .sentinel { height: 1px; }
@@ -204,7 +210,10 @@ input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 
 .sugg li:active { background: var(--raise); }
 .sugg .mag { color: var(--muted); font-size: 18px; }
 body.typing { padding-bottom: 0; }
-body.typing .top, body.typing .tabs, body.typing .dock, body.typing .toast { display: none; }
+body.typing .top, body.typing .tabs, body.typing .dock { display: none; }
+/* Đang gõ (bàn phím mở): thông báo hiện ngay dưới ô tìm kiếm để không bị bàn phím che */
+body.typing .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 74px); transform: translate(-50%, -12px); }
+body.typing .toast.show { transform: translate(-50%, 0); }
 body.typing .searchwrap { position: sticky; top: 0; z-index: 15; background: var(--ink); padding-top: env(safe-area-inset-top, 0px); }
 
 /* Thanh âm lượng: nền xám + phần đã lấp (có ánh sáng chạy) nằm dưới nút kéo. Nút kéo là biểu tượng cái loa

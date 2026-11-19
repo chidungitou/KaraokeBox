@@ -74,6 +74,38 @@
     toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
   }
 
+  // ---------- Hiệu ứng "đã chọn": hàng bài nháy xanh + nút đổi thành dấu ✓ khoảng 2 giây ----------
+  // Lưu theo id bài (không gắn vào phần tử) vì danh sách bị vẽ lại ngay khi hàng chờ cập nhật.
+  const picked = new Map(), pickedTimers = new Map();
+  const listRows = () => document.querySelectorAll('#songs li, #yt li');
+  function setPickedState(li, state) {
+    li.classList.toggle('picked', !!state);
+    li.querySelectorAll('button[data-act="add"], button[data-act="prio"]').forEach((b) => {
+      const a = b.dataset.act, on = state === a;
+      b.classList.toggle('done', on);
+      b.textContent = on ? (a === 'prio' ? '✓ Ưu tiên' : '✓ Đã chọn') : (a === 'prio' ? 'Ưu tiên' : 'Chọn');
+    });
+  }
+  function reapplyPicked() {
+    if (!picked.size) return;
+    listRows().forEach((li) => { if (picked.has(li.dataset.id)) setPickedState(li, picked.get(li.dataset.id)); });
+  }
+  function markPicked(key, priority) {
+    key = String(key);
+    picked.set(key, priority ? 'prio' : 'add');
+    listRows().forEach((li) => {
+      if (li.dataset.id !== key) return;
+      li.classList.remove('picked'); void li.offsetWidth;   // chọn lại cùng bài thì nháy lại từ đầu
+      setPickedState(li, picked.get(key));
+    });
+    clearTimeout(pickedTimers.get(key));
+    pickedTimers.set(key, setTimeout(() => {
+      picked.delete(key); pickedTimers.delete(key);
+      listRows().forEach((li) => { if (li.dataset.id === key) setPickedState(li, null); });
+    }, 2200));
+    try { if (navigator.vibrate) navigator.vibrate(35); } catch (_) {}
+  }
+
   // Hàng chờ xếp công bằng theo người thêm nên bài mới có thể nằm giữa hàng: báo vị trí để khỏi thắc mắc
   function addedMsg(d, priority) {
     if (priority) return 'Đã đưa lên hát kế tiếp';
@@ -272,10 +304,11 @@
   function renderSongs() {
     songsEl.innerHTML = songs.map(songRow).join('');
     $('#songsEmpty').hidden = source !== 'local' || songs.length > 0 || loading;
+    reapplyPicked();
   }
 
   async function loadSongs(reset) {
-    const q = $('#q').value;
+    const q = reset ? $('#q').value : (lastQ || '');
     if (reset) { songs = []; total = 0; lastQ = q; }
     const token = ++searchToken;
     loading = true;
@@ -315,7 +348,7 @@
     const priority = btn.dataset.act === 'prio';
     btn.disabled = true;
     act(async () => {
-      try { const d = await api('POST', '/api/queue', { songId: id, priority }); toast(addedMsg(d, priority)); resetSearchAfterPick(); }
+      try { const d = await api('POST', '/api/queue', { songId: id, priority }); toast(addedMsg(d, priority)); afterPick(id, priority); }
       finally { btn.disabled = false; }
     });
   });
@@ -364,13 +397,14 @@
     $('#ytEmpty').hidden = !(ytSearched && !ytBusy && yt.length === 0);
     $('#ytMore').hidden = !ytCursor;
     $('#ytMore').disabled = ytBusy;
+    reapplyPicked();
   }
 
   async function ytSearch(more) {
     if (source !== 'yt') return;
     const raw = $('#q').value.trim();
     if (!more) {
-      if (raw.length < 2) { ytToken++; yt = []; ytCursor = null; ytSearched = false; ytBusy = false; renderYt(); return; }
+      if (raw.length < 2) return;   // ô trống hoặc mới gõ 1 chữ: giữ nguyên danh sách cũ
       yt = []; ytCursor = null;
     } else if (!ytCursor || ytBusy) { return; }
 
@@ -427,11 +461,11 @@
   });
 
   // --- Chế độ gõ: khi bàn phím mở, ẩn tiêu đề + thanh điều khiển để nhường chỗ ---
-  let typingTimer;
+  let typingTimer, keepScroll = false;
   $('#q').addEventListener('focus', () => {
     clearTimeout(typingTimer);
     document.body.classList.add('typing');
-    window.scrollTo(0, 0);
+    if (!keepScroll) window.scrollTo(0, 0);
     if (source === 'yt') loadSugg();
   });
   $('#q').addEventListener('blur', () => {
@@ -492,20 +526,18 @@
   }
   $('#micBtn').addEventListener('click', startVoice);
 
-  // Gọi sau khi Chọn / Ưu tiên thành công: xóa chữ đã gõ, xóa danh sách vừa tìm, đặt con trỏ lại ô tìm kiếm
-  function resetSearchAfterPick() {
+  // Gọi sau khi Chọn / Ưu tiên thành công: báo rõ bằng hiệu ứng trên hàng bài, rồi (nếu bật) xóa chữ trong ô
+  // tìm kiếm và đặt con trỏ lại đó. Danh sách kết quả được GIỮ NGUYÊN cho đến khi tìm bài hoặc ca sĩ khác.
+  function afterPick(key, priority) {
+    markPicked(key, priority);
     if (!clearAfterPick) return;
     const q = $('#q');
     clearTimeout(debounce); clearTimeout(ytDebounce); clearTimeout(suggTimer);
-    q.value = '';
-    if (source === 'yt') {
-      ytToken++; yt = []; ytCursor = null; ytSearched = false; ytBusy = false; renderYt();
-    } else {
-      loadSongs(true);   // ô trống thì hiện lại danh sách mặc định như lúc mới mở
-    }
+    q.value = '';   // gán bằng code nên không phát sự kiện input, danh sách không bị tìm lại
     hideSugg();
-    window.scrollTo(0, 0);
-    q.focus();
+    keepScroll = true;
+    q.focus({ preventScroll: true });
+    keepScroll = false;
   }
 
   ytEl.addEventListener('click', (e) => {
@@ -520,7 +552,7 @@
       try {
         const d = await api('POST', '/api/youtube/queue', { videoId: v.videoId, title: v.title, channel: v.channel, durationMs: v.durationMs, priority });
         toast(addedMsg(d, priority));
-        resetSearchAfterPick();
+        afterPick(v.videoId, priority);
       } finally { btn.disabled = false; }
     });
   });
