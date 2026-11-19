@@ -461,11 +461,11 @@
   });
 
   // --- Chế độ gõ: khi bàn phím mở, ẩn tiêu đề + thanh điều khiển để nhường chỗ ---
-  let typingTimer, keepScroll = false;
+  let typingTimer;
   $('#q').addEventListener('focus', () => {
     clearTimeout(typingTimer);
     document.body.classList.add('typing');
-    if (!keepScroll) window.scrollTo(0, 0);
+    window.scrollTo(0, 0);
     if (source === 'yt') loadSugg();
   });
   $('#q').addEventListener('blur', () => {
@@ -527,17 +527,14 @@
   $('#micBtn').addEventListener('click', startVoice);
 
   // Gọi sau khi Chọn / Ưu tiên thành công: báo rõ bằng hiệu ứng trên hàng bài, rồi (nếu bật) xóa chữ trong ô
-  // tìm kiếm và đặt con trỏ lại đó. Danh sách kết quả được GIỮ NGUYÊN cho đến khi tìm bài hoặc ca sĩ khác.
+  // tìm kiếm. Danh sách kết quả được GIỮ NGUYÊN cho đến khi tìm bài hoặc ca sĩ khác. Không tự mở bàn phím:
+  // người dùng chạm vào ô tìm kiếm khi muốn gõ bài mới.
   function afterPick(key, priority) {
     markPicked(key, priority);
     if (!clearAfterPick) return;
-    const q = $('#q');
     clearTimeout(debounce); clearTimeout(ytDebounce); clearTimeout(suggTimer);
-    q.value = '';   // gán bằng code nên không phát sự kiện input, danh sách không bị tìm lại
+    $('#q').value = '';   // gán bằng code nên không phát sự kiện input, danh sách không bị tìm lại
     hideSugg();
-    keepScroll = true;
-    q.focus({ preventScroll: true });
-    keepScroll = false;
   }
 
   ytEl.addEventListener('click', (e) => {

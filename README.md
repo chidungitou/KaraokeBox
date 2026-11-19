@@ -193,7 +193,7 @@ Chỉ áp dụng cho kết nối tới GitHub (cập nhật app, kiểm tra NewP
 
 - Trên web remote, bấm biểu tượng **micro** ở ô tìm kiếm rồi nói tên bài hoặc ca sĩ (tiếng Việt). Nói xong app tự tìm, với cả **Trong máy** lẫn **YouTube**. Bấm micro lần nữa để dừng.
 - Dùng bộ nhận giọng nói có sẵn của trình duyệt điện thoại (Chrome, Safari), cần Internet và cho phép micro. Web remote chạy bằng `http` nên Chrome có thể hỏi quyền micro mỗi lần. Nếu trình duyệt không hỗ trợ, dùng biểu tượng micro trên bàn phím.
-- Sau khi bấm **Chọn** hoặc **Ưu tiên**, hàng bài nháy xanh và nút đổi thành dấu ✓ khoảng 2 giây (kèm thông báo và rung nhẹ) để biết đã thêm thành công. App cũng xóa chữ trong ô tìm kiếm và đặt con trỏ lại đó để gõ bài mới, còn **danh sách kết quả cũ được giữ nguyên** cho đến khi bạn tìm bài hoặc ca sĩ khác. Tắt trong Cài đặt: **Tự xóa ô tìm kiếm sau khi chọn bài** (mặc định bật, lưu riêng từng điện thoại).
+- Sau khi bấm **Chọn** hoặc **Ưu tiên**, hàng bài nháy xanh và nút đổi thành dấu ✓ khoảng 2 giây (kèm thông báo và rung nhẹ) để biết đã thêm thành công. App cũng xóa chữ trong ô tìm kiếm (bàn phím **không** tự mở, chạm vào ô khi muốn gõ bài mới), còn **danh sách kết quả cũ được giữ nguyên** cho đến khi bạn tìm bài hoặc ca sĩ khác. Tắt trong Cài đặt: **Tự xóa ô tìm kiếm sau khi chọn bài** (mặc định bật, lưu riêng từng điện thoại).
 
 ## Ổn định máy chủ (v1.6.0)
 - Lệnh điều khiển chuyển sang luồng Main có **thời hạn 5 giây**: nếu Main đang kẹt, điện thoại nhận lỗi 503 "Box đang bận" thay vì treo luôn luồng của máy chủ.
