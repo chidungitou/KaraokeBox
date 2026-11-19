@@ -102,7 +102,7 @@ class PlaybackController(
     val ytStatus: StateFlow<YtStatus> get() = youtube.status
 
     init {
-        applyDefaultVolumeOnce()
+        applyDefaultVolume()
         applyStudioFx()   // hiệu ứng âm thanh phòng thu theo cài đặt đã lưu
         player.exo.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
@@ -752,7 +752,7 @@ class PlaybackController(
     }
 
     /** Lần chạy đầu tiên: đặt âm lượng hệ thống về [DEFAULT_VOLUME_PCT]%. Các lần sau giữ nguyên mức người dùng đã chỉnh. */
-    private fun applyDefaultVolumeOnce() {
+    private fun applyDefaultVolume() {
         if (settings.defaultVolumeApplied) return
         settings.defaultVolumeApplied = true
         try {

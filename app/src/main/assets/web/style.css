@@ -50,7 +50,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .conn { background: var(--rose); color: #2a0010; font-size: 13px; font-weight: 600; padding: 6px 16px; text-align: center; }
 
 /* Tabs */
-.tabs { display: flex; position: sticky; top: calc(var(--top-h, 66px)); z-index: 10; background: var(--ink); border-bottom: 1px solid var(--line); }
+.tabs { display: flex; position: sticky; top: calc(var(--top-h, 66px) - 1px); z-index: 10; background: var(--ink); border-bottom: 1px solid var(--line); }
 .tab { flex: 1; padding: 13px 8px; color: var(--muted); font-weight: 600; border-bottom: 3px solid transparent; }
 .tab.on { color: var(--text); }
 .tabind { position: absolute; left: 0; bottom: 0; width: 33.3334%; height: 3px; background: var(--amber); border-radius: 2px 2px 0 0; transition: transform .28s cubic-bezier(.3,.7,.2,1); pointer-events: none; }
@@ -58,7 +58,7 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .tab.on .count { background: var(--amber); color: var(--amber-ink); }
 
 /* Tìm kiếm: ghim ngay dưới thanh tab để cuộn danh sách vẫn thấy ô gõ + công tắc Trong máy / YouTube */
-.searchwrap { position: sticky; top: calc(var(--top-h, 66px) + var(--tabs-h, 48px)); z-index: 9; background: var(--ink); padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+.searchwrap { position: sticky; top: calc(var(--top-h, 66px) + var(--tabs-h, 48px) - 2px); padding-top: 1px; z-index: 9; background: var(--ink); padding-bottom: 4px; border-bottom: 1px solid var(--line); }
 .searchbox { padding: 12px 16px 6px; position: relative; }
 #q { width: 100%; height: 48px; padding: 0 52px 0 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-size: 17px; }
 #q::placeholder { color: #756a87; }
@@ -290,3 +290,12 @@ ul.list li.leaving { overflow: hidden; opacity: 0; transform: translateX(-28px);
 .setrow.dim { opacity: .45; }
 .modal.readonly .setrow { opacity: .75; }
 .setrow select:disabled, .btn:disabled { opacity: .6; }
+
+/* Chặn hở khe khi cuộn: các thanh ghim chồng lên nhau 1px (thanh trên luôn nằm trên), nền phủ kín, không thấy danh sách lọt qua */
+.top, .tabs, .searchwrap { background-clip: padding-box; }
+.top { box-shadow: 0 1px 0 var(--ink); }
+.tabs { box-shadow: 0 1px 0 var(--ink); }
+
+/* Ẩn thanh âm lượng (mặc định): dock thấp hơn */
+body.novol { --dock-h: 122px; }
+body.novol .vol { display: none; }

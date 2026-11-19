@@ -187,10 +187,10 @@
   document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
   function syncTopHeight() {
-    document.documentElement.style.setProperty('--top-h', $('.top').offsetHeight + 'px');
+    document.documentElement.style.setProperty('--top-h', $('.top').getBoundingClientRect().height + 'px');
     // chiều cao thanh tab: ô tìm kiếm ghim ngay dưới thanh này
     const tabsEl = $('.tabs');
-    if (tabsEl && tabsEl.offsetHeight) document.documentElement.style.setProperty('--tabs-h', tabsEl.offsetHeight + 'px');
+    if (tabsEl && tabsEl.offsetHeight) document.documentElement.style.setProperty('--tabs-h', tabsEl.getBoundingClientRect().height + 'px');
   }
   new ResizeObserver(syncTopHeight).observe($('.top'));
   if ($('.tabs')) new ResizeObserver(syncTopHeight).observe($('.tabs'));
@@ -354,13 +354,13 @@
   });
 
   // ---------- YouTube ----------
-  let source = store.get('kb.src') === 'local' ? 'local' : 'yt';   // mặc định: YouTube
+  let source = 'yt';   // luôn bắt đầu bằng YouTube mỗi lần mở trang (không nhớ lựa chọn cũ)
   let useKaraoke = store.get('kb.ks') !== '0';
   let yt = [], ytCursor = null, ytBusy = false, ytToken = 0, ytSearched = false;
   const ytEl = $('#yt');
 
   function setSource(s) {
-    source = s; store.set('kb.src', s); hideSugg();
+    source = s; hideSugg();
     const isYt = s === 'yt';
     $('#srcLocal').classList.toggle('on', !isYt);
     $('#srcYt').classList.toggle('on', isYt);
@@ -374,7 +374,7 @@
   }
   $('#ks').checked = useKaraoke;
   $('#ks').addEventListener('change', (e) => { useKaraoke = e.target.checked; store.set('kb.ks', useKaraoke ? '1' : '0'); });
-  document.querySelectorAll('.segbtn').forEach((b) => b.addEventListener('click', () => setSource(b.dataset.src)));
+  document.querySelectorAll('.segbtn[data-src]').forEach((b) => b.addEventListener('click', () => setSource(b.dataset.src)));
 
   function ytRow(v) {
     const n = queue.reduce((c, it) => c + (it.song.videoId === v.videoId ? 1 : 0), 0);
@@ -1060,6 +1060,12 @@
     volBox.classList.toggle('v-mid', v > 0 && v < 50);
   }
   setVolVisual(+vol.value);
+  // Thanh âm lượng: mặc định ẩn, bật trong Cài đặt (riêng mỗi điện thoại)
+  const showVolEl = $('#setShowVol');
+  const applyShowVol = (on) => { document.body.classList.toggle('novol', !on); if (typeof syncTopHeight === 'function') syncTopHeight(); };
+  showVolEl.checked = store.get('kb.showVol') === '1';
+  applyShowVol(showVolEl.checked);
+  showVolEl.addEventListener('change', (e) => { store.set('kb.showVol', e.target.checked ? '1' : '0'); applyShowVol(e.target.checked); });
   vol.addEventListener('pointerdown', () => { sliding = true; });
   vol.addEventListener('pointerup', () => { sliding = false; });
   vol.addEventListener('input', () => {

@@ -49,13 +49,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
       </button>
     </div>
-    <div class="srcbar">
-      <div class="seg" role="tablist" aria-label="Nguồn bài hát">
-        <button class="segbtn on" id="srcLocal" data-src="local">Trong máy</button>
-        <button class="segbtn" id="srcYt" data-src="yt">YouTube</button>
-      </div>
-      <label class="ks" id="ksWrap" hidden><input type="checkbox" id="ks" checked> thêm “karaoke”</label>
-    </div>
     </div>
     <ul class="sugg" id="sugg" hidden></ul>
 
@@ -207,6 +200,33 @@
         <div class="setnote">Bấm Chọn hoặc Ưu tiên xong thì xóa chữ trong ô tìm kiếm, bàn phím không tự mở (chạm vào ô khi muốn gõ bài mới). Danh sách kết quả cũ vẫn giữ cho đến khi bạn tìm bài hoặc ca sĩ khác. Chỉ áp dụng cho điện thoại này.</div>
       </div>
       <label class="sw"><input type="checkbox" id="setClearAfterPick" aria-label="Tự xóa ô tìm kiếm sau khi chọn bài"><i></i></label>
+    </div>
+
+    <div class="setrow col">
+      <div class="settxt">
+        <div class="setname">Nguồn tìm bài</div>
+        <div class="setnote">Mỗi lần mở lại trang luôn là YouTube. Chọn Trong máy nếu chỉ muốn tìm bài trong ổ cứng của box lần này.</div>
+      </div>
+      <div class="seg" role="tablist" aria-label="Nguồn bài hát">
+        <button class="segbtn" id="srcLocal" data-src="local">Trong máy</button>
+        <button class="segbtn on" id="srcYt" data-src="yt">YouTube</button>
+      </div>
+    </div>
+
+    <div class="setrow" id="ksWrap">
+      <div class="settxt">
+        <div class="setname">Thêm chữ “karaoke” khi tìm YouTube</div>
+        <div class="setnote">Tự thêm chữ karaoke vào truy vấn để ra bản beat sẵn. Mặc định bật.</div>
+      </div>
+      <label class="sw"><input type="checkbox" id="ks" checked aria-label="Thêm chữ karaoke khi tìm YouTube"><i></i></label>
+    </div>
+
+    <div class="setrow">
+      <div class="settxt">
+        <div class="setname">Hiện thanh âm lượng trên điện thoại</div>
+        <div class="setnote">Mặc định ẩn. Âm lượng trên box luôn về 80% mỗi lần mở app; chỉnh bằng phím Lên/Xuống trên remote TV.</div>
+      </div>
+      <label class="sw"><input type="checkbox" id="setShowVol" aria-label="Hiện thanh âm lượng"><i></i></label>
     </div>
 
     <div class="setrow col">
